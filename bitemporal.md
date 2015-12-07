@@ -69,13 +69,13 @@ Bitemporal Table support in Postgresql 9.4.
 
 ## What Bitemporal Combinations mean
 
-|---|-----------------------|-------------------------|------------------
-|   | what we used to claim | what we currently claim | what we will claim
-|---|-----------------------|-------------------------|------------------
-|what things used to be like| what we used to claim things used to be like| what we currently claim things used to be like| what we will claim things used to be like
-|---|-----------------------|-------------------------|------------------
-what things are like | what we used to claim things are like now | what we currently claim things are like now | what we will claim things are like now
-|---|-----------------------|-------------------------|------------------
-what things will be like| what we used to claim things will be like| what we currently claim things will be like| what we will claim things will be like 
-|---|-----------------------|-------------------------|------------------
+|---|-----------------------|-------------------------|------------------|
+|   | what we used to claim | what we currently claim | what we will claim|
+|---|-----------------------|-------------------------|------------------|
+|what things used to be like| what we used to claim things used to be like| what we currently claim things used to be like| what we will claim things used to be like|
+|---|-----------------------|-------------------------|------------------|
+|what things are like | what we used to claim things are like now | what we currently claim things are like now | what we will claim things are like now|
+|---|-----------------------|-------------------------|------------------|
+|what things will be like| what we used to claim things will be like| what we currently claim things will be like| what we will claim things will be like |
+|---|-----------------------|-------------------------|------------------|
 
