@@ -1,0 +1,361 @@
+
+# Time Period Relationships
+
+
+There are 13 Allen Relationships. There are 6 basic relationships and 6
+inverses of those basic relationships and the equality relationship. The
+Allen relationship definitions assume the relationships are not communitive. 
+
+This library assumes that if the relationship and its inverse are communitive
+then there is one function defined and it is left to the user to swap the
+arguments if necessary. 
+
+The 13 relationships are partitioned into 5 groups that encompasses
+two or more basic relationships. These partitions allow for a larger range
+of expression between two time periods. 
+
+
+## User Functions
+
+
+The user functions are defined below. They are group in a way that makes
+explaination easier. 
+    
+      << high level functions >>=
+      << simple functions >>
+      << during functions >>
+      << overlaps functions >>
+      << before functions >>
+      << partition functions >>
+
+
+The function names are prefix with _is_ if the function implements a single
+relationship such as *is\_after* implementing the *[Before^-1]* relationship. 
+The prefix _has_ is used to denote a function that implements both a
+relationship and its inverse, such as *has\_starts* implementing *[Starts]* and
+*[Starts^-1*.
+
+
+### Starts, Finishes and Equals
+
+The has\_starts is [starts] and [starts^-1]. 
+The has\_finishes is [finishes] [finishes^-1]. 
+THe equals is [equals]. As it is a single relationship that is its own inverse
+neither is or has prefix was used.
+
+The order of the arguments is unimportant to these relationship.
+
+
+      << simple functions >>=
+      -- 
+      -- [starts] [starts^-1]
+      -- 
+      create or replace
+      function has_starts(a timeperiod , b timeperiod )
+      returns boolean language SQL IMMUTABLE 
+      as $$
+        select fst(a) = fst(b) and snd(a) <> snd(b);
+      $$;
+      -- 
+      -- [finishes] [finishes^-1]
+      -- 
+      create or replace
+      function has_finishes(a timeperiod, b timeperiod)
+      returns boolean language SQL IMMUTABLE 
+      as $$
+        select snd(a) = snd(b) and fst(a) <> fst(b);
+      $$;
+      -- 
+      -- [equals]
+      -- 
+      create or replace
+      function equals(a timeperiod, b timeperiod)
+      returns boolean language SQL IMMUTABLE 
+      as $$
+        -- doubtful = operator exists for timeperiod
+       select fst(a) = fst(b) and snd(a) = snd(b) ;
+      $$;
+
+### During
+
+is\_during implements [during] and is\_contained\_in implements [during^-1].
+The function names are meant to match how the relationship reads in english.
+
+The function has\_during implments the alternative of either argument is during
+the other. This is effective [during] or [during^-1].
+It is unclear if this function would be needed.
+
+      << during functions >>=
+      -- 
+      -- [during] 
+      -- 
+      create or replace
+      function is_during(a timeperiod, b timeperiod)
+      returns boolean language SQL IMMUTABLE 
+      as $$
+        select (fst(b) > fst(a)) and (snd(a) < snd(b));
+      $$;
+      -- 
+      -- [during^-1] contained
+      -- 
+      create or replace
+      function is_contained_in(a timeperiod, b timeperiod)
+      returns boolean language SQL IMMUTABLE 
+      as $$
+        select is_during(b, a);
+      $$;
+
+      --
+      -- [during] or [during^-1] 
+      --
+      create or replace
+      function has_during(a timeperiod, b timeperiod)
+      returns boolean language SQL IMMUTABLE 
+      as $$
+        select is_during(a, b) or is_during(b,a);
+      $$;
+
+### Overlaps
+
+Implementing [Overlaps] and [Overlaps^-1] is confusing. 
+is\_overlaps implments the relationships based on the order of the arguments.
+But as an english description there is no real inverse as a can overlap b or b
+overlaps a. has\_overlaps implements both cases of overlap.
+
+
+      << overlaps functions >>=
+      -- 
+      -- [overlaps] 
+      -- 
+      create or replace
+      function is_overlaps(a timeperiod, b timeperiod)
+      returns boolean language SQL IMMUTABLE 
+
+      as $$
+        select  fst(a) < fst(b) and snd(a) > fst(b) and snd(a) < snd(b);
+      $$;
+
+      --
+      -- either overlaps the other [overlaps] [overlaps^-1]
+      --
+      create or replace
+      function has_overlaps(a timeperiod, b timeperiod)
+      returns boolean language SQL IMMUTABLE 
+      as $$
+        select  is_overlaps(a , b ) or is_overlaps(b , a ) ;
+      $$;
+
+### Before
+
+There are three [before] and [before^-1] functions. is\_before implements
+[before] and is\_after implements [before^-1] and has\_before implements
+both cases. The word after reads better as the inverse of before.
+has\_before handles the case of determining if either argument is before the
+other without regard to which.
+
+      << before functions >>=
+      -- 
+      -- [before] 
+      -- 
+      create or replace
+      function is_before(a timeperiod, b timeperiod)
+      returns boolean language SQL IMMUTABLE 
+      as $$
+        select  snd(a) < fst(b);
+      $$;
+      -- 
+      -- [before^-1]
+      -- 
+      create or replace
+      function is_after(a timeperiod, b timeperiod)
+      returns boolean language SQL IMMUTABLE 
+      as $$
+          -- is_before(b, a)
+         select snd(b) < fst(a);
+      $$;
+
+      -- 
+      -- either [before] [before^-1]
+      -- 
+      create or replace
+      function has_before(a timeperiod, b timeperiod)
+      returns boolean language SQL IMMUTABLE 
+      as $$
+        select  snd(a) < fst(b) or snd(b) < fst(a);
+      $$;
+
+### Meets
+
+Meets is implemeted similarlly to overlaps. There is no english words to
+handle the inverse case. is\_meets can be used for [meets] or [meets^-1]
+depending on the order of arguments. has\_meets implements the order agnostic
+case of whether two time periods meet in either way. 
+
+      << meets functions >>=
+      -- 
+      -- [meets] [meets^-1]
+      -- 
+      -- no shared time tick.
+      -- 
+      create or replace
+      function is_meets(a timeperiod, b timeperiod)
+      returns boolean language SQL IMMUTABLE 
+      as $$
+       select  snd(a) = fst(b) ;
+      $$;
+
+      create or replace
+      function has_meets(a timeperiod, b timeperiod)
+      returns boolean language SQL IMMUTABLE 
+      as $$
+        select snd(a) = fst(b) or snd(b) = fst(a);
+      $$;
+
+### Partitioning of Relationships
+
+
+According to Johnston 2014 and Johnston, Weis 2010, the Allen Relationships
+can be binary partitioned into groups. Theses groupings allow for an extended
+set of terms to describe time period relationships. 
+
+* Excludes 
+* Includes
+* Contains
+* Encloses
+* AlignsWith
+
+Excludes is [Before], [Before^-1], [Meets], [Meets^-1].
+Includes is [Overlaps], [Overlaps^-1] and the Contains group.
+Contains is [Equals] and Encloses group.
+Encloses is [During], [During^-1] and the AlignsWith group.
+AlignsWith is [Starts],[Starts^-1], [Finishes], and [Finishes^-1].
+
+All the functions uses the _has_ prefix to denote they are agnostic to the
+order of arguements.
+
+
+      << partition functions >>=
+      -- 
+      -- Partition of Allen Relationships
+      --
+
+      -- 
+      -- [Includes] 
+      --     [Contains] or [Overlaps]
+      create or replace
+      function has_includes(a timeperiod, b timeperiod)
+      returns boolean language SQL IMMUTABLE 
+      as $$
+        select  fst(a) = fst(b) or snd(a) = snd(b) or 
+            (snd(a) <= snd(b) and (fst(a) >= fst(b) or fst(b) < snd(a))) or 
+              (snd(a) >= snd(b) and (fst(a) < snd(b) or fst(a) <= fst(b)));
+      $$;
+
+      --
+      -- [Contains]
+      --    [Encloses] or [Equals]
+
+      create or replace
+      function has_contains(a timeperiod, b timeperiod)
+      returns boolean language SQL IMMUTABLE 
+
+      as $$
+       select fst(a) = fst(b) or snd(a) = snd(b) or 
+           (snd(a) < snd(b) and fst(a) > fst(b)) or 
+             (snd(b) < snd(a) and fst(b) > fst(a));
+      $$;
+
+      --
+      -- [Aligns With]
+      --   [Starts] or [Finishes]
+      --
+      create or replace
+      function has_aligns_with(a timeperiod, b timeperiod)
+      returns boolean language SQL IMMUTABLE 
+      as $$
+         select   xor( fst(a) = fst(b) , snd(a) = snd(b) );
+      $$;
+
+      --
+      -- [Encloses]
+      --   [Aligns With] or [During]
+      -- 
+
+      create or replace
+      function has_encloses(a timeperiod, b timeperiod)
+      returns boolean language SQL IMMUTABLE 
+      as $$
+        select has_during(a,b) or has_aligns_with(a,b);
+      $$;
+
+
+      --
+      -- [Excludes]
+      --   [Before] or [Meets]
+      --
+      create or replace
+      function has_excludes(a timeperiod, b timeperiod)
+      returns boolean language SQL IMMUTABLE 
+      as $$
+         select fst(a) >= snd(b) or fst(b) >= snd(a) ;
+      $$ ;
+
+### Schema
+
+   << schema >>=
+   create schema if not exists temporal_relationships;
+    
+   create DOMAIN timeperiod   as daterange ;
+
+### Support Functions
+
+The accessor functions in Postgresql for ranges uses lower/upper but
+I found that naming to be a bit arch. fst & snd are named after the haskell
+methods for accessing elements of a two-tuple. 
+
+The xor function was to make the logic of the partition functions more
+readable and tie into the function definitions. The expressions were
+simplified and the xor arose during simplification.
+
+    << internal functions >>=
+    create or replace 
+    function xor(a boolean, b boolean) returns boolean
+    language sql IMMUTABLE
+    as 
+    $$ select  ( (not a) <> (not b)); $$;
+
+    create or replace 
+    function fst( x anyrange ) returns anyelement
+    language SQL IMMUTABLE 
+    as
+    $$ select lower(x); $$;
+
+    create or replace
+    function snd( x anyrange ) returns anyelement
+    language SQL IMMUTABLE 
+    as
+    $$ select upper(x); $$;
+
+## References
+
+1.  James F. Allen. 1983. "Maintaining knowledge about temporal intervals." 
+    Commun.  ACM 26, 11 (November 1983), 832-843. [DOI](http://dx.doi.org/10.1145/182.358434)
+2.  Tom Johnston. 2014. "Bitemporal Data: Theory and Practice (1st ed.)." 
+    Morgan Kaufmann Publishers Inc., San Francisco, CA, USA.
+3.  Tom Johnston & Randall Weis. 2010. "Managing Time in Relational Databases: 
+    How to Design, Update and Query Temporal Data." Morgan Kaufmann Publishers Inc., San Francisco, CA, USA.
+
+
+
+## Appendix: Main File structure
+
+The file structure is as follows
+
+  << * >>=
+  begin;
+  << schema >>
+  << internal functions >>
+  << high level functions >>
+  commit;
+
+  -- vim: set filetype=pgsql expandtab tabstop=2 shiftwidth=2:
