@@ -1,0 +1,87 @@
+#
+# Sections
+#=========
+# machine: adjusting the VM to your preferences and requirements
+# checkout: checking out and cloning your git repo
+# dependencies: setting up your project's language-specific dependencies
+# database: preparing the databases for your tests
+# test: running your tests
+# deployment: deploying your code to your web servers
+#
+# Options in all Sections
+#------------------------
+# pre: commands run before CircleCI's inferred commands
+# override: commands run instead of CircleCI's inferred commands
+# post: commands run after CircleCI's inferred commands
+#
+# Command Modifiers
+#------------------
+# 
+# timeout: if a command runs this many seconds without output, kill it 
+#         (default:180s)
+# pwd: run commands using this value as the current working directory 
+#      (default: the checkout directory named for your project, 
+#        except in the machine and checkout/pre sections, 
+#        where it defaults to $HOME.)
+# environment: a hash creating a list of environment variables set for this
+#              command (see Machine configuration for this modifier's 
+#              properties when used in the machine section of the file)
+# parallel: (only used with commands in the test section) if you have manually
+#            set up parallelism, set this to true to run a command across all VMs
+# files: The files identified by the file list (or globs) will be 
+#        appended to the command arguments. The files will be 
+#        distributed across all containers running the build. 
+#        Check manual parallelism setup document for more details.
+# background: when "true", runs a command in the background. It is 
+#             similar to ending a shell command with '&', but works 
+#             correctly over ssh. Useful for starting servers, 
+#             which your tests will connect to.
+
+## Customize the machine
+machine:
+  # Set the timezone
+  timezone:
+    America/Chicago
+
+  post:
+    - sudo apt-get update
+    - sudo apt-get install parallel libgetopt-declare-perl
+    - sudo chown -R postgres /usr/lib/postgresql/*/lib
+    - sudo chown -R postgres /usr/share/postgresql/*/extension
+    - yes | sudo cpan TAP::Parser::SourceHandler::pgTAP
+
+  # Override /etc/hosts
+  hosts:
+    server.example.com: 127.0.0.1
+    www.example.org: 127.0.0.1
+
+  # Add machine level environment variables
+  environment:
+    CIRCLE_ENV: test
+    DATABASE_URL: postgres://ubuntu:@127.0.0.1:5432/circle_test
+    PGDATABASE: circle_test
+    PGHOST: localhost  
+    PGPORT: 5432
+    PGUSER: ubuntu
+
+## Customize dependencies
+dependencies:
+  pre:
+    - bash ./build/dependencies.sh
+    - perl -MTAP::Parser::SourceHandler::pgTAP -e 'print;'
+
+## we automatically cache and restore many dependencies between
+## builds. If you need to, you can add custom paths to cache:
+  cache_directories:
+    - "dummy_fdw"
+
+## Customize database setup
+database:
+  override:
+    - bash build/load_database.sh:
+        timeout: 600
+
+## Customize test commands
+test:
+  override:
+    - bash build/test_database.sh

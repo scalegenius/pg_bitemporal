@@ -27,6 +27,7 @@ explaination easier.
 << during functions >>
 << overlaps functions >>
 << before functions >>
+<< meets functions >>
 << partition functions >>
 ```
 The function names are prefix with _is_ if the function implements a single
@@ -95,7 +96,7 @@ create or replace
 function is_during(a timeperiod, b timeperiod)
 returns boolean language SQL IMMUTABLE 
 as $$
-  select (fst(b) > fst(a)) and (snd(a) < snd(b));
+  select (fst(a) > fst(b)) and (snd(a) < snd(b));
 $$;
 -- 
 -- [during^-1] contained
@@ -311,8 +312,30 @@ $$ ;
 ```Sql
 << schema >>=
 create schema if not exists temporal_relationships;
- 
-create DOMAIN timeperiod   as daterange ;
+set local search_path to temporal_relationships, public;
+-- create a domain if not exists 
+DO $d$
+DECLARE
+  domain_name text default 'timeperiod';
+  domain_type text default 'daterange';
+BEGIN
+PERFORM n.nspname as "Schema",
+        t.typname as "Name",
+        pg_catalog.format_type(t.typbasetype, t.typtypmod) as "Type"
+FROM pg_catalog.pg_type t
+      LEFT JOIN pg_catalog.pg_namespace n ON n.oid = t.typnamespace
+WHERE t.typtype = 'd'
+       AND n.nspname <> 'pg_catalog'
+       AND n.nspname <> 'information_schema'
+       AND pg_catalog.pg_type_is_visible(t.oid)
+   AND t.typname = domain_name;
+   if FOUND then
+     raise NOTICE 'Domain % already exists', domain_name;
+   else 
+     execute format('create domain %I as %I', domain_name, domain_type);
+   end if;
+END;
+$d$;
 ```
 ### Support Functions
 
