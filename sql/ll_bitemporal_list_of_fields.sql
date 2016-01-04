@@ -1,4 +1,4 @@
-CREATE OR REPLACE FUNCTION ll_bitemporal_list_of_fields(p_table text) RETURNS text[]
+CREATE OR REPLACE FUNCTION bitemporal_internal.ll_bitemporal_list_of_fields(p_table text) RETURNS text[]
 AS
 $BODY$
 BEGIN
@@ -10,6 +10,7 @@ RETURN ( array(SELECT attname
                                                         AND pa.attnum=pad.adnum
                           WHERE (adsrc NOT LIKE 'nextval%' OR adsrc IS NULL)
                                 AND attname !='asserted'
+                                AND attname !='effective'
                         ORDER BY pa.attnum));
 END;                        
 $BODY$ LANGUAGE plpgsql;
