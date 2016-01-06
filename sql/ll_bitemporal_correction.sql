@@ -3,18 +3,16 @@ CREATE OR REPLACE FUNCTION bitemporal_internal.ll_bitemporal_correction(p_table 
 , p_list_of_values TEXT  -- values to update with
 , p_search_fields TEXT  -- search fields
 , p_search_values TEXT  --  search values
-, p_effective tstzrange  -- effective range we are correcting
+, p_effective temporal_relationships.timeperiod  -- effective range we are correcting
 )
 RETURNS void
+--does not check whether this is a future assert, can be used to correct future asserted as well
 AS
 $BODY$
 DECLARE
-  v_list_of_fields text          :=' ';
-  v_list_of_values text          :=' ';
   v_list_of_fields_to_insert text;
   v_table_attr text[];
   v_now timestamptz              :=now();-- so that we can reference this time as a constant
-  i integer                      := 1;
 BEGIN
  v_table_attr := bitemporal_internal.ll_bitemporal_list_of_fields(p_table);
  IF  array_length(v_table_attr,1)=0

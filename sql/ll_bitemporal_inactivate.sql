@@ -1,8 +1,8 @@
 CREATE OR REPLACE FUNCTION bitemporal_internal.ll_bitemporal_inactivate(p_table text
 , p_search_fields TEXT  -- search fields
 , p_search_values TEXT  --  search values
-, p_effective tstzrange -- inactive starting
-, p_asserted tstzrange -- will be asserted
+, p_effective temporal_relationships.timeperiod -- inactive starting
+, p_asserted temporal_relationships.timeperiod -- will be asserted
 )
 RETURNS void
 AS
@@ -39,11 +39,11 @@ v_list_of_fields_to_insert:= v_list_of_fields_to_insert_excl_effective||',effect
 --end assertion period for the old record(s)
 
 EXECUTE format($u$ UPDATE %s SET asserted = tstzrange(lower(asserted), lower(%L::tstzrange), '[)')
-                    WHERE ( %s )=( %s ) AND (temporal_relationships.is_overlaps(effective::temporal_relationships.timeperiod, %L::temporal_relationships.timeperiod)
+                    WHERE ( %s )=( %s ) AND (temporal_relationships.is_overlaps(effective, %L)
                                        OR 
-                                       temporal_relationships.is_meets(effective::temporal_relationships.timeperiod, %L::temporal_relationships.timeperiod)
+                                       temporal_relationships.is_meets(effective, %L)
                                        OR 
-                                       temporal_relationships.has_finishes(effective::temporal_relationships.timeperiod, %L::temporal_relationships.timeperiod))
+                                       temporal_relationships.has_finishes(effective, %L))
                                        AND now()<@ asserted  $u$  
           , p_table
           , p_asserted
@@ -58,11 +58,11 @@ EXECUTE format($u$ UPDATE %s SET asserted = tstzrange(lower(asserted), lower(%L:
  
 EXECUTE format($i$INSERT INTO %s ( %s, effective, asserted )
                 SELECT %s ,tstzrange(lower(effective), lower(%L::tstzrange),'[)') ,%L
-                  FROM %s WHERE ( %s )=( %s ) AND (temporal_relationships.is_overlaps(effective::temporal_relationships.timeperiod, %L::temporal_relationships.timeperiod)
+                  FROM %s WHERE ( %s )=( %s ) AND (temporal_relationships.is_overlaps(effective, %L)
                                        OR 
-                                       temporal_relationships.is_meets(effective::temporal_relationships.timeperiod, %L::temporal_relationships.timeperiod)
+                                       temporal_relationships.is_meets(effective, %L)
                                        OR 
-                                       temporal_relationships.has_finishes(effective::temporal_relationships.timeperiod, %L::temporal_relationships.timeperiod))
+                                       temporal_relationships.has_finishes(effective, %L))
                                        AND upper(asserted)=lower(%L::tstzrange) $i$  
           , p_table
           , v_list_of_fields_to_insert_excl_effective
