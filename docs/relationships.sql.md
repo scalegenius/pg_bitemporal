@@ -317,7 +317,7 @@ set local search_path to temporal_relationships, public;
 DO $d$
 DECLARE
   domain_name text default 'timeperiod';
-  domain_type text default 'daterange';
+  domain_type text default 'tstzrange';
 BEGIN
 PERFORM n.nspname as "Schema",
         t.typname as "Name",
