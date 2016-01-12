@@ -109,7 +109,7 @@ values
 ,13) 
 ;
 create view testing_relationships (description, s1,f1,s2,f2, a, b) as
-select description,s1,f1,s2,f2, daterange(s1,f1, '[)'), daterange(s2,f2,'[)') 
+select description,s1,f1,s2,f2, tstzrange(s1,f1, '[)'),tstzrange(s2,f2,'[)') 
 , force_order
 from raw_testing_data order by force_order
 ;
