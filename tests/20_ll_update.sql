@@ -2,6 +2,7 @@
 BEGIN;
 set client_min_messages to warning;
 set local search_path = 'bi_temp_tables','bitemporal_internal','temporal_relationships','public';
+set local TimeZone  = 'UTC';
 
 SELECT plan( 11 );
 
@@ -25,7 +26,7 @@ select lives_ok($$
 insert into  bi_temp_tables.devices( device_id , effective, asserted, device_descr ) 
 values 
  (1, '[01-01-2015, infinity)', '[01-01-2015, infinity)','descr2')
-,(5, '[2015-12-01 00:00:00-06,2015-12-31 00:00:00-06)', '[2015-12-01 00:00:00-06,2015-12-31 00:00:00-06)', 'test_5')
+,(5, '[2015-12-01 00:00:00-06,2015-12-31 00:00:00+00)', '[2015-12-01 00:00:00-06,2015-12-31 00:00:00+00)', 'test_5')
 $$, 'insert data nto devices');
 
 /* ,(1, '[01-01-2015, infinity)', '[01-01-2015, infinity)','descr2')
@@ -80,8 +81,8 @@ $q$
 , $v$
 values 
 ( 11
-  ,'["2016-01-01 00:00:00-06",infinity)'
-  ,'["2016-01-02 00:00:00-06",infinity)'
+  ,'["2016-01-01 00:00:00+00",infinity)'
+  ,'["2016-01-02 00:00:00+00",infinity)'
   ,'new_descr'::text)
 $v$ 
 ,'select after bitemporal insert'
