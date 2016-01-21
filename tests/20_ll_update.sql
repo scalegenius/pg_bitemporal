@@ -4,22 +4,27 @@ set client_min_messages to warning;
 set local search_path = 'bi_temp_tables','bitemporal_internal','temporal_relationships','public';
 set local TimeZone  = 'UTC';
 
-SELECT plan( 11 );
+SELECT plan( 13 );
 
 select lives_ok($$ 
     create schema bi_temp_tables 
 $$, 'create schema');
 
 select lives_ok($$
-  create table bi_temp_tables.devices (
+  create table bi_temp_tables.devices_manual (
       device_id_key serial NOT NULL
     , device_id integer
     , effective tstzrange
     , asserted tstzrange
     , device_descr text
+    , row_created_at timestamptz NOT NULL DEFAULT now()
     , CONSTRAINT devices_device_id_asserted_effective_excl EXCLUDE 
       USING gist (device_id WITH =, asserted WITH &&, effective WITH &&)
   ) 
+$$, 'create devices manual');
+
+select lives_ok($$select * from bitemporal_internal.ll_create_bitemporal_table('bi_temp_tables.devices', 
+'device_id_key serial,device_id integer, device_descr text', 'device_id') 
 $$, 'create devices');
 
 select lives_ok($$
@@ -57,6 +62,9 @@ select is( ll_is_bitemporal_table('bi_temp_tables.devices_temp'), false
 
 select is( ll_is_bitemporal_table('bi_temp_tables.devices')
     , true  , 'is bitemporal table? devices');
+
+select is( ll_is_bitemporal_table('bi_temp_tables.devices_manual')
+    , true  , 'is bitemporal table? devices_manual');
 
 select is( ll_is_bitemporal_table('bi_temp_tables.devices_non_temp')
     , false , 'is bitemporal table? devices_non_temp');
