@@ -8,12 +8,13 @@ v_business_key_gist text;
 BEGIN
 v_business_key_name :=translate(p_business_key, ', ','_')||'_asserted_effective_excl';
 v_business_key_gist :=replace(p_business_key, ',',' WITH =,')||' WITH =, asserted WITH &&, effective WITH &&';
-raise notice 'gist %',v_business_key_gist;
+--raise notice 'gist %',v_business_key_gist;
 EXECUTE format($create$
 CREATE TABLE %s (
                  %s
                  ,effective temporal_relationships.timeperiod
                  ,asserted temporal_relationships.timeperiod
+                 ,row_created_at timestamptz NOT NULL
                  ,CONSTRAINT %s EXCLUDE 
                    USING gist (%s))
                  $create$

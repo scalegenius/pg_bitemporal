@@ -22,7 +22,7 @@ BEGIN
 
  v_list_of_fields_to_insert:= array_to_string(v_table_attr, ',','');
 
- EXECUTE format($u$ UPDATE %s SET asserted = tstzrange(lower(asserted), %L, '[)')
+ EXECUTE format($u$ UPDATE %s SET asserted = temporal_relationships.timeperiod_range(lower(asserted), %L, '[)')
                     WHERE ( %s )=( %s ) AND effective = %L
                           AND upper(asserted)='infinity' $u$  --end assertion period for the old record(s)
           , p_table
@@ -32,7 +32,7 @@ BEGIN
           , p_effective);
 
  EXECUTE format($i$INSERT INTO %s ( %s, effective, asserted )
-                SELECT %s ,effective, tstzrange(upper(asserted), 'infinity', '[)')
+                SELECT %s ,effective, temporal_relationships.timeperiod_range(upper(asserted), 'infinity', '[)')
                   FROM %s WHERE ( %s )=( %s ) AND effective = %L
                           AND upper(asserted)= %L $i$  --insert new assertion rage with old values 
           , p_table

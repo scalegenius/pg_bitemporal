@@ -38,7 +38,7 @@ v_list_of_fields_to_insert:= v_list_of_fields_to_insert_excl_effective||',effect
 
 --end assertion period for the old record(s)
 
-EXECUTE format($u$ UPDATE %s SET asserted = tstzrange(lower(asserted), lower(%L::tstzrange), '[)')
+EXECUTE format($u$ UPDATE %s SET asserted = temporal_relationships.timeperiod_range(lower(asserted), lower(%L::timeperiod), '[)')
                     WHERE ( %s )=( %s ) AND (temporal_relationships.is_overlaps(effective, %L)
                                        OR 
                                        temporal_relationships.is_meets(effective, %L)
@@ -57,13 +57,13 @@ EXECUTE format($u$ UPDATE %s SET asserted = tstzrange(lower(asserted), lower(%L:
  
  
 EXECUTE format($i$INSERT INTO %s ( %s, effective, asserted )
-                SELECT %s ,tstzrange(lower(effective), lower(%L::tstzrange),'[)') ,%L
+                SELECT %s ,temporal_relationships.timeperiod_range(lower(effective), lower(%L::timeperiod),'[)') ,%L
                   FROM %s WHERE ( %s )=( %s ) AND (temporal_relationships.is_overlaps(effective, %L)
                                        OR 
                                        temporal_relationships.is_meets(effective, %L)
                                        OR 
                                        temporal_relationships.has_finishes(effective, %L))
-                                       AND upper(asserted)=lower(%L::tstzrange) $i$  
+                                       AND upper(asserted)=lower(%L::timeperiod) $i$  
           , p_table
           , v_list_of_fields_to_insert_excl_effective
           , v_list_of_fields_to_insert_excl_effective

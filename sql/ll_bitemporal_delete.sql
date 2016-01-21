@@ -9,8 +9,8 @@ $BODY$
 BEGIN 
 --end assertion period for the current records record(s)
 
-EXECUTE format($u$ UPDATE %s SET asserted = tstzrange(lower(asserted), lower(%L::tstzrange), '[)')
-                    WHERE ( %s )=( %s )AND lower(%L::tstzrange)<@ asserted  $u$  
+EXECUTE format($u$ UPDATE %s SET asserted = temporal_relationships.timeperiod_range(lower(asserted), lower(%L::timeperiod), '[)')
+                    WHERE ( %s )=( %s )AND lower(%L::timeperiod)<@ asserted  $u$  
           , p_table
           , p_asserted
           , p_search_fields   
