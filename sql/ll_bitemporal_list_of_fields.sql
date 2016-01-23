@@ -11,6 +11,7 @@ RETURN ( array(SELECT attname
                           WHERE (adsrc NOT LIKE 'nextval%' OR adsrc IS NULL)
                                 AND attname !='asserted'
                                 AND attname !='effective'
+                                AND attname !='row_created_at'
                         ORDER BY pa.attnum));
 END;                        
 $BODY$ LANGUAGE plpgsql;

@@ -2,7 +2,7 @@ BEGIN;
 set client_min_messages to warning;
 set search_path = bitemporal_internal, public;
 
-SELECT plan(1);
+SELECT plan(2);
 CREATE SCHEMA bi_temp_tables;
 
 --create test table
