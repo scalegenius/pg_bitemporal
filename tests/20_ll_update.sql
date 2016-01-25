@@ -4,7 +4,7 @@ set client_min_messages to warning;
 set local search_path = 'bi_temp_tables','bitemporal_internal','temporal_relationships','public';
 set local TimeZone  = 'UTC';
 
-SELECT plan( 13 );
+SELECT plan( 15 );
 
 select lives_ok($$ 
     create schema bi_temp_tables 
@@ -32,15 +32,7 @@ insert into  bi_temp_tables.devices( device_id , effective, asserted, device_des
 values 
  (1, '[01-01-2015, infinity)', '[01-01-2015, infinity)','descr2')
 ,(5, '[2015-12-01 00:00:00-06,2015-12-31 00:00:00+00)', '[2015-12-01 00:00:00-06,2015-12-31 00:00:00+00)', 'test_5')
-$$, 'insert data nto devices');
-
-/* ,(1, '[01-01-2015, infinity)', '[01-01-2015, infinity)','descr2')
-,(1, '[01-01-2015, infinity)', '[01-01-2015, infinity)','descr2')
-,(1, '[01-01-2015, infinity)', '[01-01-2015, infinity)','descr2')
-,(1, '[01-01-2015, infinity)', '[01-01-2015, infinity)','descr2')
-,(1, '[01-01-2015, infinity)', '[01-01-2015, infinity)','descr2');
-*/
-
+$$, 'insert data into devices');
 
 ---non-temp for test
 
@@ -110,28 +102,43 @@ $v$
 ,'list of fields'
 );
 
-/*
 ---test correction
 
-begin
 
-select * from bitemporal_internal.ll_bitemporal_insert('bi_temp_tables.devices',
-'device_id ,
-device_descr',
-$$'11', 'new_descr'$$,
-'[01-01-2016, infinity)',
-'[01-02-2016, infinity)' );
-
-
-select * from bitemporal_internal.ll_bitemporal_correction('bi_temp_tables.devices',
+select lives_ok($q$select * from bitemporal_internal.ll_bitemporal_correction('bi_temp_tables.devices',
 'device_descr',
 $$'updated_descr_11'$$,
 'device_id' , 
 '11',
-'[01-01-2016, infinity)' );
+'[01-01-2016, infinity)' )$q$
+,'bitemporal correction'
+);
 
-select * from bi_temp_tables.devices;
-rollback;
+select results_eq($q$ 
+  select device_descr
+        from bi_temp_tables.devices where device_id = 11 and upper(asserted)=infinity and effective='[01-01-2016, infinity)'
+$q$
+, $v$
+values 
+('new_descr'::text)
+$v$ 
+,'select after bitemporal correction - old'
+);
+
+select results_eq($q$ 
+  select device_descr
+        from bi_temp_tables.devices where device_id = 11 and lower(asserted)='2016-01-02'
+         and effective='[01-01-2016, infinity)'
+$q$
+, $v$
+values 
+('updated_descr_11'::text)
+$v$ 
+,'select after bitemporal correction - new'
+);
+
+
+/* rollback;
 
 ---output:
 
