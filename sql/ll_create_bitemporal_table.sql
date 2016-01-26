@@ -1,5 +1,5 @@
 CREATE OR REPLACE FUNCTION bitemporal_internal.ll_create_bitemporal_table(p_table text, p_table_definition text, p_business_key text) 
-RETURNS void 
+RETURNS BOOLEAN 
 AS
  $$
 DECLARE 
@@ -23,6 +23,6 @@ CREATE TABLE %s (
                  ,v_business_key_name
                  ,v_business_key_gist
                  ) ;
- return ;               
+ RETURN ('true');               
 END;
 $$ LANGUAGE plpgsql;

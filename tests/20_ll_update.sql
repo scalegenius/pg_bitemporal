@@ -137,8 +137,7 @@ $v$
 ,'select after bitemporal correction - new'
 );
 
-/* next test to write
-
+/*
 ---test update:
 
 select * from bitemporal_internal.ll_bitemporal_update('bi_temp_tables.devices'
@@ -166,15 +165,8 @@ select * from bitemporal_internal.ll_bitemporal_update('bi_temp_tables.devices'
 ;
 select * from bi_temp_tables.devices order by 2,1
 
----output
 
-11;8;"["2015-12-01 00:00:00-06","2016-01-01 00:00:00-06")";"["2015-12-15 00:00:00-06","2016-01-03 00:00:00-06")";"descr8"
-52;8;"["2015-12-01 00:00:00-06","2016-01-01 00:00:00-06")";"["2016-01-03 00:00:00-06",infinity)";"descr8"
-53;8;"["2016-01-01 00:00:00-06",infinity)";"["2016-01-03 00:00:00-06",infinity)";"'descr starting from jan 1'"
-
-*/
-
-/* 
+ 
 ----inactivate
 
 select * from bitemporal_internal.ll_bitemporal_inactivate('bi_temp_tables.devices'
