@@ -4,7 +4,7 @@ set client_min_messages to warning;
 set local search_path = 'bi_temp_tables','bitemporal_internal','temporal_relationships','public';
 set local TimeZone  = 'UTC';
 
-SELECT plan( 15 );
+SELECT plan( 14 );
 
 select lives_ok($$ 
     create schema bi_temp_tables 
@@ -137,14 +137,7 @@ $v$
 ,'select after bitemporal correction - new'
 );
 
-
-/* rollback;
-
----output:
-
-23;11;"["2016-01-01 00:00:00-06",infinity)";"["2016-01-02 00:00:00-06","2016-01-02 17:31:05.157147-06")";"new_descr"
-24;11;"["2016-01-01 00:00:00-06",infinity)";"["2016-01-02 17:31:05.157147-06",infinity)";"updated_descr_11"
-
+/* next test to write
 
 ---test update:
 
@@ -179,7 +172,9 @@ select * from bi_temp_tables.devices order by 2,1
 52;8;"["2015-12-01 00:00:00-06","2016-01-01 00:00:00-06")";"["2016-01-03 00:00:00-06",infinity)";"descr8"
 53;8;"["2016-01-01 00:00:00-06",infinity)";"["2016-01-03 00:00:00-06",infinity)";"'descr starting from jan 1'"
 
+*/
 
+/* 
 ----inactivate
 
 select * from bitemporal_internal.ll_bitemporal_inactivate('bi_temp_tables.devices'
