@@ -120,7 +120,7 @@ select results_eq($q$
 $q$
 , $v$
 values 
-('new_descr'::text)
+('updated_descr_11'::text)
 $v$ 
 ,'select after bitemporal correction - old'
 );
@@ -132,7 +132,7 @@ select results_eq($q$
 $q$
 , $v$
 values 
-('updated_descr_11'::text)
+('new_descr'::text)
 $v$ 
 ,'select after bitemporal correction - new'
 );
