@@ -116,7 +116,7 @@ $$'updated_descr_11'$$,
 
 select results_eq($q$ 
   select device_descr
-        from bi_temp_tables.devices where device_id = 11 and upper(asserted)=infinity and effective='[01-01-2016, infinity)'
+        from bi_temp_tables.devices where device_id = 11 and upper(asserted)='infinity' and effective='[01-01-2016, infinity)'
 $q$
 , $v$
 values 
