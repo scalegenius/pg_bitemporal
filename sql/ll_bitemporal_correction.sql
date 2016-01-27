@@ -56,7 +56,7 @@ BEGIN
           , p_search_fields
           , p_search_values
           , p_effective
-     ) 
+     ) ;
  RETURN 1;        
 END;
 $BODY$ LANGUAGE plpgsql;
