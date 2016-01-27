@@ -10,7 +10,7 @@ RETURNS INTEGER
 AS
 $BODY$
 DECLARE
-  v_record_count INTGER;
+  v_record_count INTEGER;
   v_list_of_fields_to_insert text;
   v_table_attr text[];
   v_now timestamptz              :=now();-- so that we can reference this time as a constant
