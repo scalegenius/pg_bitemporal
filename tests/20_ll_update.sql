@@ -68,7 +68,8 @@ select is( ll_is_bitemporal_table('bi_temp_tables.dev')
  select results_eq ($q$
   select bitemporal_internal.ll_bitemporal_insert('bi_temp_tables.devices',
   'device_id , device_descr', $$'11', 'new_descr'$$, '[01-01-2016, infinity)', '[01-02-2016, infinity)' )
-$q$, 1,
+$q$, 
+$v values(1) $v$,
 ,'bitemporal insert'
 );
 
