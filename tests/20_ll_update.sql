@@ -74,7 +74,7 @@ $q$
 */
 -- select * from bi_temp_tables.devices ;
 
-select results_eq($q$ select device_id, device_descr
+select results_eq($q$ select device_id, device_descr, effective, asserted
 from bitemporal_internal.ll_bitemporal_insert('bi_temp_tables.devices',
   'device_id , device_descr', $$11, 'new_descr'$$, '[01-01-2016, infinity)', '[01-02-2016, infinity)' )
   as s(device_id_key integer,
@@ -84,7 +84,9 @@ $q$
 values 
 ( 11
 ,'new_descr'::text
- )
+  ,'["2016-01-01 00:00:00+00",infinity)'::temporal_relationships.timeperiod
+  ,'["2016-01-02 00:00:00+00",infinity)'::temporal_relationships.timeperiod
+)
 $v$ 
 ,'bitemporal insert, returns select '
 );
