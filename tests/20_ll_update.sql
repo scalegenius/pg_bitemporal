@@ -65,16 +65,16 @@ select is( ll_is_bitemporal_table('bi_temp_tables.dev')
     , false , 'is bitemporal table? dev');
 
 ----test insert:
-/* select lives_ok($q$
+ select results_eq ($q$
   select bitemporal_internal.ll_bitemporal_insert('bi_temp_tables.devices',
   'device_id , device_descr', $$'11', 'new_descr'$$, '[01-01-2016, infinity)', '[01-02-2016, infinity)' )
-$q$
+$q$, 1,
 ,'bitemporal insert'
 );
-*/
+
 -- select * from bi_temp_tables.devices ;
 
-select results_eq($q$ select device_id, device_descr, effective, asserted
+/*select results_eq($q$ select device_id, device_descr, effective, asserted
 from bitemporal_internal.ll_bitemporal_insert('bi_temp_tables.devices',
   'device_id , device_descr', $$11, 'new_descr'$$, '[01-01-2016, infinity)', '[01-02-2016, infinity)' )
   as s(device_id_key integer,
@@ -90,7 +90,7 @@ values
 $v$ 
 ,'bitemporal insert, returns select '
 );
-
+*/
 
 select results_eq($q$ 
     select * from 
