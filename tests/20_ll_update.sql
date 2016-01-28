@@ -4,7 +4,7 @@ set client_min_messages to warning;
 set local search_path = 'bi_temp_tables','bitemporal_internal','temporal_relationships','public';
 set local TimeZone  = 'UTC';
 
-SELECT plan( 16 );
+SELECT plan( 15 );
 
 select lives_ok($$ 
     create schema bi_temp_tables 
@@ -65,27 +65,28 @@ select is( ll_is_bitemporal_table('bi_temp_tables.dev')
     , false , 'is bitemporal table? dev');
 
 ----test insert:
-select lives_ok($q$
+/* select lives_ok($q$
   select bitemporal_internal.ll_bitemporal_insert('bi_temp_tables.devices',
   'device_id , device_descr', $$'11', 'new_descr'$$, '[01-01-2016, infinity)', '[01-02-2016, infinity)' )
 $q$
 ,'bitemporal insert'
 );
-
+*/
 -- select * from bi_temp_tables.devices ;
 
-select results_eq($q$ 
-  select device_id,effective::text,asserted::text,device_descr
-        from bi_temp_tables.devices where device_id = 11
+select results_eq($q$ select device_id, device_descr, effective, asserted
+from bitemporal_internal.ll_bitemporal_insert('bi_temp_tables.devices',
+  'device_id , device_descr', $$'11', 'new_descr'$$, '[01-01-2016, infinity)', '[01-02-2016, infinity)' )
 $q$
 , $v$
 values 
 ( 11
+  ,'new_descr'
   ,'["2016-01-01 00:00:00+00",infinity)'
   ,'["2016-01-02 00:00:00+00",infinity)'
-  ,'new_descr'::text)
+)
 $v$ 
-,'select after bitemporal insert'
+,'bitemporal insert, returns select '
 );
 
 

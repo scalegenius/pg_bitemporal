@@ -3,11 +3,11 @@ CREATE OR REPLACE FUNCTION bitemporal_internal.ll_bitemporal_insert(p_table text
 ,p_list_of_values TEXT
 ,p_effective temporal_relationships.timeperiod 
 ,p_asserted temporal_relationships.timeperiod ) 
-RETURNS INTEGER
+RETURNS RECORD
 AS
  $BODY$
 DECLARE
-v_rowcount INTEGER;
+v_record RECORD;
 BEGIN
  EXECUTE format ($i$INSERT INTO %s (%s, effective, asserted )  
                  VALUES (%s,%L,%L) RETURNING * $i$
@@ -15,9 +15,10 @@ BEGIN
                 ,p_list_of_fields
                 ,p_list_of_values
                 ,p_effective
-                ,p_asserted) ;
-     GET DIAGNOSTICS v_rowcount:=ROW_COUNT; 
-     RETURN v_rowcount;         
+                ,p_asserted) INTO v_record;
+    -- GET DIAGNOSTICS v_rowcount:=ROW_COUNT; 
+   --  RETURN v_rowcount; 
+   RETURN v_record;        
      END;    
 $BODY$ LANGUAGE plpgsql;
 
