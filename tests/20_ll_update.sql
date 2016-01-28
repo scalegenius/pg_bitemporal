@@ -83,7 +83,7 @@ $q$
 , $v$
 values 
 ( 11
-  ,'new_descr'
+  ,'new_descr'::text
   ,'["2016-01-01 00:00:00+00",infinity)'
   ,'["2016-01-02 00:00:00+00",infinity)'
 )
