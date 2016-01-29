@@ -105,12 +105,13 @@ $v$
 ---test correction
 
 
-select lives_ok($q$select * from bitemporal_internal.ll_bitemporal_correction('bi_temp_tables.devices',
+select results_eq($q$select bitemporal_internal.ll_bitemporal_correction('bi_temp_tables.devices',
 'device_descr',
 $$'updated_descr_11'$$,
 'device_id' , 
 '11',
-'[01-01-2016, infinity)' )$q$
+'[01-01-2016, infinity)' )$q$, 
+$v$ values(1) $v$
 ,'bitemporal correction'
 );
 

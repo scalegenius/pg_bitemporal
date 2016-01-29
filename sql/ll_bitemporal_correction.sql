@@ -10,7 +10,7 @@ RETURNS INTEGER
 AS
 $BODY$
 DECLARE
-  v_record_count INTEGER;
+  v_rowcount INTEGER:=0;
   v_list_of_fields_to_insert text;
   v_table_attr text[];
   v_now timestamptz              :=now();-- so that we can reference this time as a constant
@@ -18,7 +18,7 @@ BEGIN
  v_table_attr := bitemporal_internal.ll_bitemporal_list_of_fields(p_table);
  IF  array_length(v_table_attr,1)=0
       THEN RAISE EXCEPTION 'Empty list of fields for a table: %', p_table; 
-  RETURN 0;
+  RETURN v_rowcount;
  END IF;
 
  v_list_of_fields_to_insert:= array_to_string(v_table_attr, ',','');
@@ -57,6 +57,7 @@ BEGIN
           , p_search_values
           , p_effective
      ) ;
- RETURN 1;        
+ GET DIAGNOSTICS v_rowcount:=ROW_COUNT; 
+ RETURN v_rowcount;
 END;
 $BODY$ LANGUAGE plpgsql;
