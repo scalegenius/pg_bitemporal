@@ -4,7 +4,7 @@ set client_min_messages to warning;
 set local search_path = 'bi_temp_tables','bitemporal_internal','temporal_relationships','public';
 set local TimeZone  = 'UTC';
 
-SELECT plan( 15 );
+SELECT plan( 16 );
 
 select lives_ok($$ 
     create schema bi_temp_tables 
@@ -75,12 +75,8 @@ $v$ values(1) $v$
 
 -- select * from bi_temp_tables.devices ;
 
-/*select results_eq($q$ select device_id, device_descr, effective, asserted
-from bitemporal_internal.ll_bitemporal_insert('bi_temp_tables.devices',
-  'device_id , device_descr', $$11, 'new_descr'$$, '[01-01-2016, infinity)', '[01-02-2016, infinity)' )
-  as s(device_id_key integer,
-  device_id integer, device_descr text, effective temporal_relationships.timeperiod, asserted temporal_relationships.timeperiod, row_created_at timestamptz) 
-$q$
+select results_eq($q$ select device_id, device_descr, effective, asserted
+from bi_temp_tables.devices where device_id =11 $q$
 , $v$
 values 
 ( 11
@@ -91,7 +87,7 @@ values
 $v$ 
 ,'bitemporal insert, returns select '
 );
-*/
+
 
 select results_eq($q$ 
     select * from 
