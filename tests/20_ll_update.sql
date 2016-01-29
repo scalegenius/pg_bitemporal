@@ -105,7 +105,7 @@ $v$
 ---test correction
 
 
-select results_eq($q$select bitemporal_internal.ll_bitemporal_correction('bi_temp_tables.devices',
+select results_eq($q$select * from bitemporal_internal.ll_bitemporal_correction('bi_temp_tables.devices',
 'device_descr',
 $$'updated_descr_11'$$,
 'device_id' , 
@@ -157,7 +157,7 @@ ERROR:  Asserted interval starts in the past or has a finite end: ["2016-01-02 0
 ---correct test:
 
 select results_eq($q$ 
-select  from bitemporal_internal.ll_bitemporal_update('bi_temp_tables.devices'
+select *  from bitemporal_internal.ll_bitemporal_update('bi_temp_tables.devices'
 ,'device_descr'
 ,$$'descr starting from jan 1'$$ 
 ,'device_id'  

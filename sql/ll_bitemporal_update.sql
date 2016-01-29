@@ -54,9 +54,8 @@ EXECUTE format($u$ UPDATE %s SET asserted = temporal_relationships.timeperiod_ra
           , p_effective
           , p_effective
           , p_effective);
-          
+
  --insert new assertion rage with old values and effective-ended
- 
 EXECUTE format($i$INSERT INTO %s ( %s, effective, asserted )
                 SELECT %s ,temporal_relationships.timeperiod_range(lower(effective), lower(%L::timeperiod),'[)') ,%L
                   FROM %s WHERE ( %s )=( %s ) AND (temporal_relationships.is_overlaps(effective, %L)
@@ -106,7 +105,7 @@ EXECUTE format($i$INSERT INTO %s ( %s, effective, asserted )
 
 --update new record(s) in new assertion rage with new values                                  
                                   
-EXECUTE format($u$ UPDATE %s SET (%s) = (%L) 
+EXECUTE format($u$ UPDATE %s SET (%s) = (%s) 
                     WHERE ( %s )=( %s ) AND effective=%L
                                         AND asserted=%L $u$  
           , p_table
@@ -117,7 +116,7 @@ EXECUTE format($u$ UPDATE %s SET (%s) = (%L)
           , p_effective
           , p_asserted);
           
-GET DIAGNOSTICS v_rowcount:=ROW_COUNT;                                                                                                
+GET DIAGNOSTICS v_rowcount:=ROW_COUNT;  
 RETURN v_rowcount;
 END;    
 $BODY$ LANGUAGE plpgsql;
