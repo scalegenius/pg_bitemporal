@@ -10,7 +10,7 @@ DECLARE
 v_records_found integer;
 ---currently do not support checks for future assertion after existing future assertion
 BEGIN 
-EXECUTE format($s$ SELECT count(*) --INTO v_records_found 
+EXECUTE format($s$ SELECT count(*) 
     FROM %s WHERE ( %s )=( %s ) AND  (temporal_relationships.is_overlaps(effective::temporal_relationships.timeperiod, %L::temporal_relationships.timeperiod)
                                        OR 
                                        temporal_relationships.is_meets(effective::temporal_relationships.timeperiod, %L::temporal_relationships.timeperiod)

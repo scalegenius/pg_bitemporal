@@ -138,7 +138,7 @@ $v$
 ,'select after bitemporal correction - new'
 );
 
----test update:
+---test update with error:
 /*
 
 select * from bitemporal_internal.ll_bitemporal_update('bi_temp_tables.devices'
@@ -153,7 +153,21 @@ select * from bitemporal_internal.ll_bitemporal_update('bi_temp_tables.devices'
 ---output:
 
 ERROR:  Asserted interval starts in the past or has a finite end: ["2016-01-02 00:00:00-06",infinity)
+
+Exactly the same test should be performed for inactivate
 */
+
+/* should probably include the test of bitemporal_internal.ll_check_bitemporal_update_conditions - if it returns zero,
+then 
+
+ERROR:  Nothing to update, use INSERT or check effective: ["2015-01-02 00:00:00-06","2015-02-02")
+
+Exactly the same test should be performed for inactivate
+
+
+*/
+
+
 ---correct test:
 
 select results_eq($q$ 
