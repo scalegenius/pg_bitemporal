@@ -182,8 +182,8 @@ $v$ values(1) $v$
 
 select results_eq($q$select count(*) from bi_temp_tables.devices 
 where device_id=11 
-and  '2016-03-16'::temporal_relationships.timeperiod <@ effective 
-and '2016-02-03'::temporal_relationships.timeperiod <@ asserted $q$, 
+and  '[2016-03-16,  2016-03-16]'<@ effective 
+and '[2016-02-03, 2016-02-03]' <@ asserted $q$, 
 $v$ values(0) $v$
 ,'bitemporal inactivate no active rows'
 );
