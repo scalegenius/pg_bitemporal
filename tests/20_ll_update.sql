@@ -4,7 +4,7 @@ set client_min_messages to warning;
 set local search_path = 'bi_temp_tables','bitemporal_internal','temporal_relationships','public';
 set local TimeZone  = 'UTC';
 
-SELECT plan( 19 );
+SELECT plan( 20 );
 
 select lives_ok($$ 
     create schema bi_temp_tables 
@@ -180,12 +180,11 @@ $v$ values(1) $v$
 );
 
 
-/*select results_eq($q$select count(*) from bi_temp_tables.devices 
+select results_eq($q$select count(*) from bi_temp_tables.devices 
 where device_id=11 
 and  '[2016-03-16,  2016-03-16]'<@ effective 
 and '[2016-02-03, 2016-02-03]' <@ asserted $q$, 0 ,'bitemporal inactivate no active rows');
 
-*/
 
 ---delete:
 
