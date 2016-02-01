@@ -4,7 +4,7 @@ set client_min_messages to warning;
 set local search_path = 'bi_temp_tables','bitemporal_internal','temporal_relationships','public';
 set local TimeZone  = 'UTC';
 
-SELECT plan( 19 );
+SELECT plan( 21 );
 
 select lives_ok($$ 
     create schema bi_temp_tables 
@@ -184,30 +184,28 @@ select results_eq($q$select count(*) from bi_temp_tables.devices
 where device_id=11 
 and  '[2016-03-16,  2016-03-16]'<@ effective 
 and '[2016-02-03, 2016-02-03]' <@ asserted $q$, 
-$v$ values(0) $v$
+$v$ 0 $v$
 ,'bitemporal inactivate no active rows'
 );
 
 
 
-
-/* 
 ---delete:
 
-select * from bitemporal_internal.ll_bitemporal_delete('bi_temp_tables.devices'
+select results_eq($q$select * from bitemporal_internal.ll_bitemporal_delete('bi_temp_tables.devices'
 ,'device_id'  
-,$$8$$  
-, '[2016-01-04 21:30, infinity)') 
+,$$1$$  
+, '[2016-04-04 21:30, infinity)')  $q$, 
+$v$ values(2) $v$
+,'bitemporal delete'
 ;
 
----output:
-
-11;8;"["2015-12-01 00:00:00-06","2016-01-01 00:00:00-06")";"["2015-12-15 00:00:00-06","2016-01-03 00:00:00-06")";"descr8"
-57;8;"["2015-12-01 00:00:00-06","2016-01-01 00:00:00-06")";"["2016-01-03 00:00:00-06","2016-01-04 21:30:00-06")";"descr8"
-58;8;"["2016-01-01 00:00:00-06",infinity)";"["2016-01-03 00:00:00-06","2016-01-03 21:30:00-06")";"'descr starting from jan 1'"
-59;8;"["2016-01-01 00:00:00-06","2016-01-31 00:00:00-06")";"["2016-01-03 21:30:00-06","2016-01-04 21:30:00-06")";"'descr starting from jan 1'"
-
-*/
+select results_eq($q$select count(*) from bi_temp_tables.devices 
+where device_id=1 
+and '[2016-04-05, 2016-04-05]' <@ asserted $q$, 
+$v$ 0 $v$
+,'bitemporal deleted - no active rows'
+);
 
 SELECT * FROM finish();
 ROLLBACK;
