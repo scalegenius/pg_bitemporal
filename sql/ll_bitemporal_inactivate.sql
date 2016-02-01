@@ -4,10 +4,11 @@ CREATE OR REPLACE FUNCTION bitemporal_internal.ll_bitemporal_inactivate(p_table 
 , p_effective temporal_relationships.timeperiod -- inactive starting
 , p_asserted temporal_relationships.timeperiod -- will be asserted
 )
-RETURNS void
+RETURNS INTEGER
 AS
 $BODY$
 DECLARE
+v_rowcount INTEGER:=0;
 v_list_of_fields_to_insert text:=' ';
 v_list_of_fields_to_insert_excl_effective text;
 v_table_attr text[];
@@ -17,20 +18,20 @@ BEGIN
     OR upper(p_asserted)< 'infinity'
  THEN RAISE EXCEPTION'Asserted interval starts in the past or has a finite end: %', p_asserted
   ; 
-  RETURN;
+  RETURN v_rowcount;
  END IF;
  IF (bitemporal_internal.ll_check_bitemporal_update_conditions(p_table 
                                                        ,p_search_fields 
                                                        ,p_search_values
                                                        ,p_effective)  =0 )
  THEN RAISE EXCEPTION'Nothing to inactivate: % = %, effective %', p_search_fields, p_search_values, p_effective; 
-  RETURN;
+  RETURN v_rowcount;
  END IF;   
 
 v_table_attr := bitemporal_internal.ll_bitemporal_list_of_fields(p_table);
 IF  array_length(v_table_attr,1)=0
       THEN RAISE EXCEPTION 'Empty list of fields for a table: %', p_table; 
-  RETURN;
+  RETURN v_rowcount;
  END IF;
 v_list_of_fields_to_insert_excl_effective:= array_to_string(v_table_attr, ',','');
 v_list_of_fields_to_insert:= v_list_of_fields_to_insert_excl_effective||',effective';
@@ -53,7 +54,7 @@ EXECUTE format($u$ UPDATE %s SET asserted = temporal_relationships.timeperiod_ra
           , p_effective
           , p_effective);
           
- --insert new assertion rage with old values and effective-ended
+ --insert new assertion range with old values and effective-ended
  
  
 EXECUTE format($i$INSERT INTO %s ( %s, effective, asserted )
@@ -78,6 +79,8 @@ EXECUTE format($i$INSERT INTO %s ( %s, effective, asserted )
           , p_asserted
 );
 
+GET DIAGNOSTICS v_rowcount:=ROW_COUNT; 
+RETURN v_rowcount;
 END;
 $BODY$ LANGUAGE plpgsql;
 

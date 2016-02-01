@@ -3,9 +3,11 @@ CREATE OR REPLACE FUNCTION bitemporal_internal.ll_bitemporal_delete(p_table text
 , p_search_values TEXT  --  search values
 , p_asserted temporal_relationships.timeperiod -- will be asserted
 )
-RETURNS void
+RETURNS INTEGER
 AS
 $BODY$
+DECLARE
+v_rowcount INTEGER:=0;
 BEGIN 
 --end assertion period for the current records record(s)
 
@@ -19,6 +21,8 @@ EXECUTE format($u$ UPDATE %s SET asserted = temporal_relationships.timeperiod_ra
           );
           
 
+GET DIAGNOSTICS v_rowcount:=ROW_COUNT; 
+RETURN v_rowcount;
 END;
 $BODY$ LANGUAGE plpgsql;
 
