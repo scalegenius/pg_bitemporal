@@ -183,10 +183,7 @@ $v$ values(1) $v$
 /*select results_eq($q$select count(*) from bi_temp_tables.devices 
 where device_id=11 
 and  '[2016-03-16,  2016-03-16]'<@ effective 
-and '[2016-02-03, 2016-02-03]' <@ asserted $q$, 
-$v$ 0 $v$
-,'bitemporal inactivate no active rows'
-);
+and '[2016-02-03, 2016-02-03]' <@ asserted $q$, 0 ,'bitemporal inactivate no active rows');
 
 */
 
@@ -197,15 +194,12 @@ select results_eq($q$select * from bitemporal_internal.ll_bitemporal_delete('bi_
 ,$$1$$  
 , '[2016-04-04 21:30, infinity)')  $q$, 
 $v$ values(2) $v$
-,'bitemporal delete'
-;
+,'bitemporal delete');
 /*
 select results_eq($q$select count(*) from bi_temp_tables.devices 
 where device_id=1 
 and '[2016-04-05, 2016-04-05]' <@ asserted $q$, 
-$v$ 0 $v$
-,'bitemporal deleted - no active rows'
-);
+ 0 ,'bitemporal deleted - no active rows');
 */
 
 SELECT * FROM finish();
