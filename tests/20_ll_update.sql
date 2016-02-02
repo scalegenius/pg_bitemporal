@@ -177,7 +177,7 @@ select *  from bitemporal_internal.ll_bitemporal_update('bi_temp_tables.devices'
 ,'device_id'  
 ,$$1$$  
 ,'[2016-01-01, infinity)'
-, '[2016-03-01, infinity)') $q$, 
+, '[3016-03-01, infinity)') $q$, 
 $v$ values(1) $v$
 ,'bitemporal update - correct'
 );
@@ -187,8 +187,8 @@ $v$ values(1) $v$
 select results_eq($q$select * from bitemporal_internal.ll_bitemporal_inactivate('bi_temp_tables.devices'
 ,'device_id'  
 ,$$11$$  
-,'[2016-03-15, infinity)'
-, '[2016-02-02, infinity)')  $q$, 
+,'[3016-03-15, infinity)'
+, '[3016-02-02, infinity)')  $q$, 
 $v$ values(1) $v$
 ,'bitemporal inactivate - correct'
 );
@@ -196,8 +196,8 @@ $v$ values(1) $v$
 
 select results_eq($q$select count(*)::integer from bi_temp_tables.devices 
 where device_id=11 
-and  '[2016-03-16,  2016-03-16]'<@ effective 
-and '[2016-02-03, 2016-02-03]' <@ asserted $q$, 
+and  '[3016-03-16,  3016-03-16]'<@ effective 
+and '[3016-02-04, 3016-02-04]' <@ asserted $q$, 
 $v$ values(0::integer) $v$,'bitemporal inactivate no active rows');
 
 
@@ -206,13 +206,13 @@ $v$ values(0::integer) $v$,'bitemporal inactivate no active rows');
 select results_eq($q$select * from bitemporal_internal.ll_bitemporal_delete('bi_temp_tables.devices'
 ,'device_id'  
 ,$$1$$  
-, '[2016-04-04 21:30, infinity)')  $q$, 
+, '[3016-04-04 21:30, infinity)')  $q$, 
 $v$ values(2) $v$
 ,'bitemporal delete');
 
 select results_eq($q$select count(*)::integer from bi_temp_tables.devices 
 where device_id=1 
-and '[2016-04-05, 2016-04-05]' <@ asserted $q$, 
+and '[3016-04-05, 3016-04-05]' <@ asserted $q$, 
 $v$ values(0::integer) $v$
 ,'bitemporal delete no active rows');
 
