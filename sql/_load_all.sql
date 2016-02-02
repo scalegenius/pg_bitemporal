@@ -8,10 +8,11 @@ set client_min_messages to warning;
 \ir extensions.sql
 \ir relationships.sql
 
-
 begin;
-set local search_path to bitemporal_internal, public;
-  
+set search_path to bitemporal_internal, public;
+
+\ir  metadata.sql
+
 \ir bitemporal_internal_schema.sql
 \ir ll_is_bitemporal_table.sql
 \ir ll_check_bitemporal_update_conditions.sql
