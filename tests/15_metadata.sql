@@ -1,5 +1,5 @@
 BEGIN;
-SELECT plan( 14 );
+SELECT plan( 13 );
 
 set local search_path = bitemporal_internal, 'temporal_relationships','public';
 
@@ -60,12 +60,6 @@ select alike( unique_constraint('a')
 select is( select_constraint_value($$asdfasdfasdf '@XXX@' $$)
 , 'XXX'
 , 'select_constraint_value' );
-
-select results_eq(
-$$ select conname from find_bitemporal_constraints('t9') $$
-, $$values ('bitemporal fk 1'::name)$$ 
-, 'find_bitemporal_constraints'
-);
 
 select is(add_constraint('t9', 'XXX')
 , $$alter table t9 add XXX$$
