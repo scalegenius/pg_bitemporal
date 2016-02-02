@@ -6,6 +6,7 @@ DO $d$
 DECLARE
   domain_name text default 'timeperiod';
   domain_type text default 'tstzrange';
+  time_type text;
 BEGIN
 PERFORM n.nspname as "Schema",
         t.typname as "Name",
@@ -22,6 +23,29 @@ WHERE t.typtype = 'd'
    else 
      execute format('create domain %I as %I', domain_name, domain_type);
    end if;
+time_type = CASE WHEN (domain_type='daterange') THEN 'date'
+                 WHEN (domain_type='tsrange') THEN 'timestamp'
+                 WHEN (domain_type='tstzrange') THEN 'timestamptz'
+                 END;
+execute format($create_function$
+   CREATE OR REPLACE FUNCTION temporal_relationships.%s_range (
+   p_range_start %s
+  ,p_range_end %s
+  ,p_range_open_close text) RETURNS %s
+  AS
+  $func$
+  BEGIN
+  RETURN %s(p_range_start
+           ,p_range_end
+           ,p_range_open_close);
+   END;    
+ $func$ LANGUAGE plpgsql;
+   $create_function$
+   ,domain_name
+   ,time_type
+   ,time_type
+   ,domain_type
+   ,domain_type);
 END;
 $d$;
 create or replace 
