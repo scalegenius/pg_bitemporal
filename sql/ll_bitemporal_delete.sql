@@ -3,14 +3,16 @@ CREATE OR REPLACE FUNCTION bitemporal_internal.ll_bitemporal_delete(p_table text
 , p_search_values TEXT  --  search values
 , p_asserted temporal_relationships.timeperiod -- will be asserted
 )
-RETURNS void
+RETURNS INTEGER
 AS
 $BODY$
+DECLARE
+v_rowcount INTEGER:=0;
 BEGIN 
 --end assertion period for the current records record(s)
 
-EXECUTE format($u$ UPDATE %s SET asserted = tstzrange(lower(asserted), lower(%L::tstzrange), '[)')
-                    WHERE ( %s )=( %s )AND lower(%L::tstzrange)<@ asserted  $u$  
+EXECUTE format($u$ UPDATE %s SET asserted = temporal_relationships.timeperiod_range(lower(asserted), lower(%L::timeperiod), '[)')
+                    WHERE ( %s )=( %s )AND lower(%L::timeperiod)<@ asserted  $u$  
           , p_table
           , p_asserted
           , p_search_fields   
@@ -19,6 +21,8 @@ EXECUTE format($u$ UPDATE %s SET asserted = tstzrange(lower(asserted), lower(%L:
           );
           
 
+GET DIAGNOSTICS v_rowcount:=ROW_COUNT; 
+RETURN v_rowcount;
 END;
 $BODY$ LANGUAGE plpgsql;
 
