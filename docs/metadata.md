@@ -39,7 +39,7 @@ This creates a clause for recording a single column as a primary key of a
 bitemporal table.
 
 ```sql
-    select pk_constraint('id')
+    select bitemporal_internal.pk_constraint('id')
 ```
 
 ### FK
@@ -54,7 +54,7 @@ This takes three arguments. The first is the local column, the second is the
 foriegn table and the third is the foriegn table column.
 
 ```sql
-    select fk_constraint('user_id', 'users', 'user_id')
+    select bitemporal_internal.fk_constraint('user_id', 'users', 'user_id')
 ```
 
 
@@ -68,7 +68,7 @@ This creates a constraint to maintain a unique column of values across the
 bitemporal dimensions.
 
 ```sql
-    select unique_constraint('username')
+    select bitemporal_internal.unique_constraint('username')
 ```
 
 
@@ -78,7 +78,7 @@ This methods constructs the alter table statement given the output of one of
 the functions above.
 
 ```sql
-    execute add_constraint('users', unique_constraint('username') );
+    execute bitemporal_internal.add_constraint('users', bitemporal_internal.unique_constraint('username') );
 ```
 
 
@@ -94,7 +94,7 @@ The functions finds the bitemporal primary key for the given table. The name
 of the column is returned as a text value. Only one column is supported.
 
 ```sql
-  select find_bitemporal_pk('schema.table_name')
+  select bitemporal_internal.find_pk('schema.table_name')
 ```
 
 ### Foreign Key
@@ -104,10 +104,10 @@ table. The fucntion returns the complete set of all Foreign Keys for the
 given table.
 
 There is a special composite type in the
-form of a table *bitemporal\_fk\_constraint\_type*.
+form of a table *bitemporal\_internal.fk\_constraint\_type*.
 
 ```sql
-    create table if not exists bitemporal_fk_constraint_type (
+    create table if not exists bitemporal_internal.fk_constraint_type (
        conname name
       , src_column  name
       , fk_table text
@@ -119,7 +119,7 @@ The connname exists to help debug is not required to determine the FK
 relationship. The type also only supports foregn keys of one column.
 
 ```sql
-    select * from find_bitemporal_fk('schema.table_name')
+    select * from bitemporal_internal.find_fk('schema.table_name')
 ```
 
 
