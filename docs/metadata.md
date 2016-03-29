@@ -68,7 +68,8 @@ This creates a constraint to maintain a unique column of values across the
 bitemporal dimensions.
 
 ```sql
-    select bitemporal_internal.unique_constraint('username')
+    select string_agg(a, ',\n') from
+        bitemporal_internal.unique_constraint('username') as s(a)
 ```
 
 
@@ -78,7 +79,7 @@ This methods constructs the alter table statement given the output of one of
 the functions above.
 
 ```sql
-    execute bitemporal_internal.add_constraint('users', bitemporal_internal.unique_constraint('username') );
+    execute bitemporal_internal.add_constraint('users', bitemporal_internal.pk_constraint('username') );
 ```
 
 
@@ -137,12 +138,23 @@ function to create a valid constraint clause the ```add_constraint``` function
 place the clause in an alter statement that can be executed.
 
 ```sql
-    execute bitemporal_internal.add_constraint('users', bitemporal_internal.unique_constraint('username') );
+DO $do$
+DECLARE
+  rc text;
+BEGIN
+    select string_agg(a, ';') into rc from
+        ( select bitemporal_internal.add_constraint('users', aa) from
+                bitemporal_internal.unique_constraint('username') as s(aa)
+        ) as t(a);
+    execute rc;
+END;
+$do$;
 ```
 
 The ```execute_add_constraint``` function will dynamicalyy execute the alter statement.
 ```sql
-    select bitemporal_internal.execute_add_constraint('users', bitemporal_internal.unique_constraint('username') );
+    select bitemporal_internal.execute_add_constraint('users', a) from
+           bitemporal_internal.unique_constraint('username') as s(a) ;
 ```
 
 
@@ -167,3 +179,12 @@ the following.
           bitemporal_internal.fk_constraint('user_id', 'users', 'user_id') );
     END; $do$;
 ```
+
+
+## Example of how Catalog is Used
+
+
+### calls to functions with clause output
+### resulting create table
+### select conname, contype, consrc from pg_constraints where table rel
+
