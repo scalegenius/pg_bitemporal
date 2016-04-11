@@ -16,7 +16,8 @@ CREATE TABLE %s (
                  ,asserted temporal_relationships.timeperiod
                  ,row_created_at timestamptz NOT NULL DEFAULT now()
                  ,CONSTRAINT %s EXCLUDE 
-                   USING gist (%s))
+                   USING gist (%s)
+                 ,CONSTRAINT   )
                  $create$
                  ,p_table
                  ,p_table_definition
