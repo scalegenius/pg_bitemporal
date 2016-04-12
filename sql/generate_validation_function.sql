@@ -23,12 +23,25 @@ DECLARE
 v_record record;
 i integer:=0;
 v_max_upper_effective timestamptz;
+v_max_upper_asserted timestamptz;
+v_min_lower_asserted timestamptz;
 BEGIN
-FOR v_record IN SELECT effective FROM  %s.%s  
+SELECT max (upper(asserted)), min(lower(asserted)) INTO 
+        v_max_upper_asserted,
+        v_min_lower_asserted
+  FROM %s.%s 
+    WHERE %s=p_value
+;
+IF v_max_upper_asserted < 'infinity' OR v_min_lower_asserted > lower(p_asserted) 
+   THEN RETURN false;
+END IF;   
+---start cycle, if there are future assertion 
+WHILE true 
+ LOOP --cycle through present and future asserted   
+FOR v_record IN SELECT effective, upper(asserted) AS upper_asserted  FROM  %s.%s  
     WHERE %s=p_value
     AND temporal_relationships.has_includes(effective,p_effective) 
-    AND upper(asserted) ='infinity' 
-    AND lower(asserted) <=lower(p_asserted)
+    AND lower(asserted) =v_min_lower_asserted
 ORDER BY lower(effective), upper(effective)
 LOOP
 IF i=0 THEN 
@@ -53,14 +66,16 @@ IF lower(v_record.effective) > v_max_upper_effective  --- there is a hole!
 END LOOP;
 IF i=0 THEN
    return false;
-   --raise notice 'false - no intersection!';
 END IF;
-IF v_max_upper_effective< upper(%L::temporal_relationships.timeperiod)
+IF v_max_upper_effective< upper(p_effective)
    THEN 
    RETURN false;
-   --  raise notice 'false - effective end too early!';
 END IF; 
-RETURN true;
+IF v_record.upper_asserted = 'infinity' THEN
+  RETURN true;
+  ELSE v_min_lower_asserted:=v_record.upper_asserted;
+END IF;  
+END LOOP; 
 END;
 $FUNCTION_BODY$ LANGUAGE plpgsql;  
 $source$
@@ -68,6 +83,9 @@ $source$
 ,p_table_name 
 ,p_field_name
 ,v_key_type
+,p_schema_name 
+,p_table_name 
+,p_field_name
 ,p_schema_name 
 ,p_table_name 
 ,p_field_name);
