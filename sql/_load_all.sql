@@ -25,6 +25,8 @@ set search_path to bitemporal_internal, public;
 \ir ll_bitemporal_inactivate.sql
 \ir ll_bitemporal_insert.sql
 \ir ll_bitemporal_update.sql
+\ir validate_bitemporal_pk_uq.sql
+\ir generate_validation_function.sql
 
 commit;
 

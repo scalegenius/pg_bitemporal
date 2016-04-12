@@ -19,7 +19,7 @@ create table bi_temp_tables.devices_manual (
     , asserted tstzrange
     , device_descr text
     , row_created_at timestamptz NOT NULL DEFAULT now()
-    , CONSTRAINT devices_device_id_asserted_effective_excl EXCLUDE 
+    , CONSTRAINT devices_manual_device_id_assert_eff_excl EXCLUDE 
       USING gist (device_id WITH =, asserted WITH &&, effective WITH &&)
   ); 
 
