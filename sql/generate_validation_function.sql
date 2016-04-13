@@ -22,9 +22,9 @@ AS $FUNCTION_BODY$
 DECLARE
 v_record record;
 i integer:=0;
-v_max_upper_effective timestamptz;
-v_max_upper_asserted timestamptz;
-v_min_lower_asserted timestamptz;
+v_max_upper_effective temporal_relationships.time_endpoint;
+v_max_upper_asserted temporal_relationships.time_endpoint;
+v_min_lower_asserted temporal_relationships.time_endpoint;
 BEGIN
 SELECT max (upper(asserted)), min(lower(asserted)) INTO 
         v_max_upper_asserted,
