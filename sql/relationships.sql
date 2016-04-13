@@ -4,10 +4,12 @@ set local search_path to temporal_relationships, public;
 -- create a domain if not exists 
 DO $d$
 DECLARE
-  domain_name text default 'timeperiod';
-  domain_type text default 'tstzrange';
-  time_type text;
+  domain_range_name text default 'timeperiod';
+  domain_range_type text default 'tstzrange';
+  domain_i_name text default 'time_endpoint';
+  domain_i_type text default 'timestamptz';
 BEGIN
+-- Create timeperiod domain
 PERFORM n.nspname as "Schema",
         t.typname as "Name",
         pg_catalog.format_type(t.typbasetype, t.typtypmod) as "Type"
@@ -17,37 +19,47 @@ WHERE t.typtype = 'd'
        AND n.nspname <> 'pg_catalog'
        AND n.nspname <> 'information_schema'
        AND pg_catalog.pg_type_is_visible(t.oid)
-   AND t.typname = domain_name;
+   AND t.typname = domain_range_name;
    if FOUND then
-     raise NOTICE 'Domain % already exists', domain_name;
-   else 
-     execute format('create domain %I as %I', domain_name, domain_type);
+     raise NOTICE 'Domain % already exists', domain_range_name;
+   else
+     execute format('create domain %I as %I', domain_range_name, domain_range_type);
    end if;
-time_type = CASE WHEN (domain_type='daterange') THEN 'date'
-                 WHEN (domain_type='tsrange') THEN 'timestamp'
-                 WHEN (domain_type='tstzrange') THEN 'timestamptz'
-                 END;
-execute format($create_function$
-   CREATE OR REPLACE FUNCTION temporal_relationships.%s_range (
-   p_range_start %s
-  ,p_range_end %s
-  ,p_range_open_close text) RETURNS %s
-  AS
-  $func$
-  BEGIN
-  RETURN %s(p_range_start
-           ,p_range_end
-           ,p_range_open_close);
-   END;    
- $func$ LANGUAGE plpgsql;
-   $create_function$
-   ,domain_name
-   ,time_type
-   ,time_type
-   ,domain_type
-   ,domain_type);
+-- Create time_endpoint domain
+PERFORM n.nspname as "Schema",
+        t.typname as "Name",
+        pg_catalog.format_type(t.typbasetype, t.typtypmod) as "Type"
+FROM pg_catalog.pg_type t
+      LEFT JOIN pg_catalog.pg_namespace n ON n.oid = t.typnamespace
+WHERE t.typtype = 'd'
+       AND n.nspname <> 'pg_catalog'
+       AND n.nspname <> 'information_schema'
+       AND pg_catalog.pg_type_is_visible(t.oid)
+   AND t.typname = domain_i_name;
+   if FOUND then
+     raise NOTICE 'Domain % already exists', domain_i_name;
+   else
+     execute format('create domain %I as %I', domain_i_name, domain_i_type);
+   end if;
 END;
 $d$;
+create or replace
+function timeperiod( p_range_start time_endpoint, p_range_end time_endpoint)
+RETURNS timeperiod
+language sql IMMUTABLE
+as
+$func$
+   select tstzrange(p_range_start, p_range_end,'[)')::timeperiod;
+$func$;
+-- backwards compatible
+create or replace
+function timeperiod_range( _s time_endpoint, _e time_endpoint, _ignored text)
+returns timeperiod
+language sql
+as
+$func$
+   select timeperiod(_s,_e);
+$func$;
 create or replace 
 function xor(a boolean, b boolean) returns boolean
 language sql IMMUTABLE

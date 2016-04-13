@@ -51,8 +51,15 @@ select is( bitemporal_internal.fk_constraint('a', 'b', 'c')
 , $$CONSTRAINT "bitemporal fk abc" check(true or 'fk' <> '@a -> b(c)@') $$
 , 'fk_constraint');
 
-select alike( bitemporal_internal.unique_constraint('a')
-, 'CONSTRAINT % EXCLUDE USING gist%(a WITH =, asserted WITH &&, effective WITH &&)'
+select results_eq(
+$q$
+  select string_agg(a, ', ') from bitemporal_internal.unique_constraint('a') as s(a)
+$q$::text,
+$$ values
+('CONSTRAINT "bitemporal u a" check(true or ''u'' <> ''@a@'')' || ' , ' ||
+  'CONSTRAINT "bitemporal unique a" EXCLUDE USING gist '||
+    '(a WITH =, asserted WITH &&, effective WITH &&)')
+$$
 , 'unique_constraint' );
 
 select is( bitemporal_internal.select_constraint_value($$asdfasdfasdf '@XXX@' $$)

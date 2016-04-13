@@ -68,7 +68,8 @@ This creates a constraint to maintain a unique column of values across the
 bitemporal dimensions.
 
 ```sql
-    select bitemporal_internal.unique_constraint('username')
+    select string_agg(a, ',\n') from
+        bitemporal_internal.unique_constraint('username') as s(a)
 ```
 
 
@@ -78,7 +79,7 @@ This methods constructs the alter table statement given the output of one of
 the functions above.
 
 ```sql
-    execute bitemporal_internal.add_constraint('users', bitemporal_internal.unique_constraint('username') );
+    execute bitemporal_internal.add_constraint('users', bitemporal_internal.pk_constraint('username') );
 ```
 
 
@@ -122,4 +123,68 @@ relationship. The type also only supports foregn keys of one column.
     select * from bitemporal_internal.find_fk('schema.table_name')
 ```
 
+
+
+
+# Examples
+
+The two main use cases are adding constraints at table creation time or after
+table exists.
+
+
+To add a unique_constraint to a an existing table *users* for the column
+*username* you would do the following. Using the ```unique_constraint```
+function to create a valid constraint clause the ```add_constraint``` function
+place the clause in an alter statement that can be executed.
+
+```sql
+DO $do$
+DECLARE
+  rc text;
+BEGIN
+    select string_agg(a, ';') into rc from
+        ( select bitemporal_internal.add_constraint('users', aa) from
+                bitemporal_internal.unique_constraint('username') as s(aa)
+        ) as t(a);
+    execute rc;
+END;
+$do$;
+```
+
+The ```execute_add_constraint``` function will dynamicalyy execute the alter statement.
+```sql
+    select bitemporal_internal.execute_add_constraint('users', a) from
+           bitemporal_internal.unique_constraint('username') as s(a) ;
+```
+
+
+
+If you which is create a primary key clause to add to a create table you can get the
+clause by the following.
+
+```sql
+    select bitemporal_internal.pk_constraint('id')
+```
+
+
+If you wish to create a table with a FK cluase at the same time you may do something like
+the following.
+
+
+```sql
+    DO $do$ BEGIN
+      execute format($$create table groups ( group_id serial,
+           group_name text, user_id int,
+           % ); $$,
+          bitemporal_internal.fk_constraint('user_id', 'users', 'user_id') );
+    END; $do$;
+```
+
+
+## Example of how Catalog is Used
+
+
+### calls to functions with clause output
+### resulting create table
+### select conname, contype, consrc from pg_constraints where table rel
 

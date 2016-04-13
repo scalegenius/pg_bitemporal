@@ -61,13 +61,17 @@ $ff$;
 
 create or replace 
 function bitemporal_internal.unique_constraint(src_column text)
-returns text
+returns setof text
 language sql IMMUTABLE
 as $f$ 
-  select format('CONSTRAINT %I EXCLUDE USING gist 
-                (%I WITH =, asserted WITH &&, effective WITH &&)'
-            , bitemporal_internal.mk_conname('unique', src_column, '', '')
-            , src_column)::text;
+  values ( bitemporal_internal.mk_constraint('u'
+             , bitemporal_internal.mk_conname('u', src_column, '','')
+             , format('%s', src_column) )),
+       (format('CONSTRAINT %I EXCLUDE USING gist (%I WITH =, asserted WITH &&, effective WITH &&)'
+             , bitemporal_internal.mk_conname('unique', src_column, '', '')
+             , src_column)::text)
+
+    ;
 --   CONSTRAINT devices_device_id_asserted_effective_excl EXCLUDE 
 --  USING gist (device_id WITH =, asserted WITH &&, effective WITH &&)
 $f$;
