@@ -26,12 +26,13 @@ type Count = Int
 -- data PhysicalRow = PhysicalRow     { physicalColumns  :: [Column] }
 -- data PhysicalTable = PhysicalTable { physicalRows :: [PhysicalRow] }
 
-data Row { domainId :: Integer
+data Domain = Domain { domainId :: Integer
         , domainValue :: T.Text
-        , domainDescription :: T.Text }
+        , domainDescription :: T.Text 
+} deriving (Eq)
 
 data BiTemporalRow = BiTemporalRow {
-             domainData    :: Row
+             domainData    :: Domain -- [Domain]
            , effective     :: TimePeriod
            , assertive     :: TimePeriod
            , rowCreated    :: TimePoint
@@ -39,18 +40,73 @@ data BiTemporalRow = BiTemporalRow {
 
 data BiTemporalTable = BiTemporalTable {  bitemporalRows :: [BiTemporalRow]  }
 
-insert :: BiTemporalTable -> Row -> TimePeriod -> TimePeriod -> BiTemporalTable
+insert :: BiTemporalTable -> Domain -> TimePeriod -> TimePeriod -> BiTemporalTable
 insert p_table p_values p_effective p_asserted = 
-       BiTemporalTable ((bitemporalRows p_table) ++ new_row)
-    where new_row = BiTemporalRow p_values p_effective p_asserted now 
+      let (rows,_ ) = query p_table p_effective in
+        if (null rows) then
+          BiTemporalTable ((bitemporalRows p_table) ++  [new_row])
+        else
+          error "Duplicate row insert"
+    where 
+        new_row = BiTemporalRow p_values p_effective p_asserted now 
      
+update :: BiTemporalTable -> Domain -> TimePeriod -> TimePeriod -> BiTemporalTable
+update t r _effective _assertive = t
 
-update :: BiTemporalTable -> Row -> TimePeriod -> TimePeriod -> BiTemporalTable
+-- | query with predicates
+--
+
+query :: BiTemporalTable -> TimePeriod -> ([BiTemporalRow], [BiTemporalRow])
+query _table _tp  = ([],[])
+
+
+type DomainCriteria = Domain -> Domain -> Bool
+-- then are the they correct bitemporal dimension
+
+rows_equal :: Domain -> Domain -> Bool
+rows_equal r1 r2 = r1 == r2
+
+-- row_match :: Row -> Bool
+type TemporalCriteria = TimePeriod -> TimePeriod -> Bool
+
+match_effective :: DomainCriteria -> Domain 
+                -> TemporalCriteria -> TimePeriod 
+                -> Bool
+match_effective df d tf t = False
+
+
+{--
+query :: TimePeriod -> BiTemporalTable -> (Row -> Bool) -> [Row]
+
+--
+-- Samples from Chris & Chad conversation
+--
+query :: TimePoint -> BiTemporalTable -> (Row -> Bool) -> [Row]
+
+2 weeks -- 3 weeks -- 4 weeks
+assertive  <here>          effective
+           new assert -- go in the past
+           new effect -- go in the future
+
+queryInternal :: TimePeriod -> BiTemporableTable -> (Row -> Bool) -> ([Row],[Row])
+queryInternal _ t db p =
+  (filter p db,filter (not . p) db)
+
+-- insert
+(rowsAssertive,_) <- queryInternal p_asserted (domainConstraint p_values)
+if not (null rows)
+   then error ""
+   else database ++ [newrow]
+
+(row,rest) <- queryInternal .. .. predicate
+let newdb = map update row ++ rest
 
 
 
 
 
+
+--}
 
 -- | Constraints
 --
