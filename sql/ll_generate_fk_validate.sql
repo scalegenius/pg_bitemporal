@@ -5,21 +5,18 @@ p_column_name text) returns text
 as $BODY_AUTO$
 declare t text;
 v_function_name text;
-v_return_type text;
+--v_return_type text;
 BEGIN
---raise notice 'entered';
 v_function_name:='validate_bt_'||p_table_name||'_'||p_column_name;
-select t.typname into v_return_type 
-from pg_class c 
-     JOIN pg_attribute a ON c.oid = a.attrelid and 
-    c.relname=p_table_name and attname=p_column_name
-     JOIN pg_namespace n ON n.oid = c.relnamespace and n.nspname=p_schema_name
-     join pg_type t on atttypid =t.oid;
+/*v_return_type :=temporal_relationships.get_column_type(
+	p_schema_name ,
+	p_table_name ,                                            
+	p_column_name );*/
 
 --EXECUTE 
 t:=format($execute$
 create or replace function %s.%s(    
-    p_value %s,
+    p_value anyelement,
     p_effective temporal_relationships.timeperiod,
     p_asserted temporal_relationships.timeperiod)
   RETURNS boolean AS

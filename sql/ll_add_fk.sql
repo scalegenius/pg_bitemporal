@@ -11,6 +11,7 @@ $BODY$
 declare
 v_fk_constraint_name text;
 v_function_name text;
+v_return_type text;
 begin
 if bitemporal_internal.validate_bitemporal_pk_uq(
     p_source_schema_name,
@@ -20,7 +21,10 @@ if bitemporal_internal.validate_bitemporal_pk_uq(
    return  'no primary key or unique constraint';
    exit;
   end if;
-    
+  v_return_type:=temporal_relationships.get_column_type(
+	p_source_schema_name ,
+	p_source_table_name ,                                            
+	p_source_column_name );
    v_fk_constraint_name:= bitemporal_internal.fk_constraint(
     p_column_name,
     p_source_table_name,
@@ -35,7 +39,9 @@ p_source_schema_name,
 p_source_table_name,
 p_source_column_name ) then
   select * into v_function_name from bitemporal_internal.ll_generate_fk_validate(
-p_source_schema_name); 
+p_source_schema_name,
+p_source_table_name ,
+p_source_column_name); 
 end if;                         
   /*do not need to check whether this constraint already exists,
    it will error, if exists */
