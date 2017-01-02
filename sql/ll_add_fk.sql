@@ -11,6 +11,7 @@ $BODY$
 declare
 v_fk_constraint_name text;
 v_function_name text;
+v_trigger_function_name text;
 v_return_type text;
 begin
 if bitemporal_internal.validate_bitemporal_pk_uq(
@@ -45,8 +46,27 @@ p_source_column_name);
 end if;                         
   /*do not need to check whether this constraint already exists,
    it will error, if exists */
-/*create trigger on insert/update and a trigger function */
-return  v_fk_constraint_name;
+select *  into  v_trigger_function_name
+   from  bitemporal_internal.ll_generate_fk_trigger_function(
+p_schema_name ,
+p_table_name ,
+p_column_name ) ;
+execute format ($create_tg$
+create trigger t_RI_bt_insert_%s_%s 
+BEFORE INSERT OR UPDATE  ON  %s.%s
+    FOR EACH ROW
+     EXECUTE PROCEDURE %s(%s, %s, %s)
+      $create_tg$,
+      p_table_name,
+      p_column_name,
+      p_schema_name,
+      p_table_name,
+      v_trigger_function_name,
+      p_schema_name,
+      p_table_name,
+      p_column_name
+       ) ;
+ return  v_fk_constraint_name;
 
 END;    
 $BODY$ 
