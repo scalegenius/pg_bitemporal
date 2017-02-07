@@ -24,7 +24,7 @@ select lives_ok($$
 $$, 'create devices manual');
 
 select lives_ok($$select * from bitemporal_internal.ll_create_bitemporal_table('bi_temp_tables','devices', 
-'device_id_key serial,device_id integer, device_descr text', 'device_id') 
+'device_id integer, device_descr text', 'device_id') 
 $$, 'create devices');
 
 select lives_ok($$
