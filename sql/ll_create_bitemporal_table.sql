@@ -9,11 +9,14 @@ DECLARE
 v_business_key_name text;
 v_business_key_gist text;
 v_serial_key_name text;
+v_table_definition text;
+v_error text;
 BEGIN
 v_serial_key_name :=p_table||'_key serial';
 v_business_key_name :=p_table||'_'||translate(p_business_key, ', ','_')||'_assert_eff_excl';
 v_business_key_gist :=replace(p_business_key, ',',' WITH =,')||' WITH =, asserted WITH &&, effective WITH &&';
 --raise notice 'gist %',v_business_key_gist;
+v_table_definition :=replace (p_table_definition, ' serial', ' integer');
 EXECUTE format($create$
 CREATE TABLE %s.%s (
                  %s
@@ -28,12 +31,14 @@ CREATE TABLE %s.%s (
                  ,p_schema
                  ,p_table
                  ,v_serial_key_name
-                 ,p_table_definition
+                 ,v_table_definition
                  ,v_business_key_name
                  ,v_business_key_gist
                  ) ;
  RETURN ('true');  
  EXCEPTION WHEN OTHERS THEN
+GET STACKED DIAGNOSTICS v_error = MESSAGE_TEXT;                          
+raise notice '%', v_error;
 RETURN ('false');             
 END;
 $BODY$
