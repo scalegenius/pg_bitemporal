@@ -8,7 +8,7 @@ CREATE SCHEMA bi_temp_tables;
 --create test table
 --------------------------
 drop table if exists bi_temp_tables.devices;
-select * from bitemporal_internal.ll_create_bitemporal_table('bi_temp_tables.devices', 
+select * from bitemporal_internal.ll_create_bitemporal_table('bi_temp_tables','devices', 
 'device_id_key serial,device_id integer, device_descr text', 'device_id') ;
 
 drop table if exists  bi_temp_tables.devices_manual;
