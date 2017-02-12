@@ -2,7 +2,11 @@ BEGIN;
 set client_min_messages to warning;
 set search_path = bitemporal_internal, public;
 
-SELECT plan(2);
+SELECT plan(3);
+
+select  unialike( current_setting('search_path'), '%temporal_relationships%'
+  ,'temporal_relationships should NOT be on search_path for these tests' );
+
 CREATE SCHEMA bi_temp_tables;
 
 --create test table

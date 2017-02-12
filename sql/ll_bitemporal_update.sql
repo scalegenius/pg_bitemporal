@@ -40,7 +40,8 @@ v_list_of_fields_to_insert:= v_list_of_fields_to_insert_excl_effective||',effect
 
 --end assertion period for the old record(s)
 
-EXECUTE format($u$ UPDATE %s SET asserted = temporal_relationships.timeperiod_range(lower(asserted), lower(%L::timeperiod), '[)')
+EXECUTE format($u$ UPDATE %s SET asserted =
+            temporal_relationships.timeperiod(lower(asserted), lower(%L::temporal_relationships.timeperiod))
                     WHERE ( %s )=( %s ) AND (temporal_relationships.is_overlaps(effective, %L)
                                        OR 
                                        temporal_relationships.is_meets(effective::temporal_relationships.timeperiod, %L)
@@ -57,13 +58,13 @@ EXECUTE format($u$ UPDATE %s SET asserted = temporal_relationships.timeperiod_ra
 
  --insert new assertion rage with old values and effective-ended
 EXECUTE format($i$INSERT INTO %s ( %s, effective, asserted )
-                SELECT %s ,temporal_relationships.timeperiod_range(lower(effective), lower(%L::timeperiod),'[)') ,%L
+                SELECT %s ,temporal_relationships.timeperiod(lower(effective), lower(%L::temporal_relationships.timeperiod)) ,%L
                   FROM %s WHERE ( %s )=( %s ) AND (temporal_relationships.is_overlaps(effective, %L)
                                        OR 
                                        temporal_relationships.is_meets(effective, %L)
                                        OR 
                                        temporal_relationships.has_finishes(effective, %L))
-                                      AND upper(asserted)=lower(%L::timeperiod) $i$  
+                                      AND upper(asserted)=lower(%L::temporal_relationships.timeperiod) $i$
           , p_table
           , v_list_of_fields_to_insert_excl_effective
           , v_list_of_fields_to_insert_excl_effective
@@ -88,7 +89,7 @@ EXECUTE format($i$INSERT INTO %s ( %s, effective, asserted )
                                        temporal_relationships.is_meets(effective, %L)
                                        OR 
                                        temporal_relationships.has_finishes(effective, %L))
-                                      AND upper(asserted)=lower(%L::timeperiod) $i$  
+                                      AND upper(asserted)=lower(%L::temporal_relationships.timeperiod) $i$
           , p_table
           , v_list_of_fields_to_insert_excl_effective
           , v_list_of_fields_to_insert_excl_effective

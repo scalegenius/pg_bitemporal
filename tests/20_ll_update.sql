@@ -1,10 +1,15 @@
 
 BEGIN;
 set client_min_messages to warning;
-set local search_path = 'bi_temp_tables','bitemporal_internal','temporal_relationships','public';
+set local search_path = 'bi_temp_tables','bitemporal_internal','public';
 set local TimeZone  = 'UTC';
 
-SELECT plan(21);
+SELECT plan(22);
+
+select  unialike( current_setting('search_path'), '%temporal_relationships%'
+  ,'temporal_relationships should NOT be on search_path for these tests' );
+
+
 
 select lives_ok($$ 
     create schema bi_temp_tables 

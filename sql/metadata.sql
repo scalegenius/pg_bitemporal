@@ -24,12 +24,14 @@ function bitemporal_internal.mk_conname(con_type text, src_column text, fk_table
 returns text
 language sql IMMUTABLE
 as $f$ 
-select substring(format('%s %s %s%s%s', bitemporal_internal.conname_prefix()
+select substring(format('%s %s %s%s%s', conname_prefix()
                    , con_type
                    , src_column
                    , fk_table, fk_column)
           from 0 for 64 );
-$f$;
+$f$
+SET search_path = 'bitemporal_internal';
+
 
 create or replace 
 function bitemporal_internal.mk_constraint(con_type text, con_name text, con_src text)
@@ -46,35 +48,38 @@ create or replace
 function bitemporal_internal.pk_constraint(src_column text)
 returns text
 language sql IMMUTABLE as $f$
-  select bitemporal_internal.mk_constraint('pk', bitemporal_internal.mk_conname('pk', src_column, '', '') , src_column);
-$f$;
+  select mk_constraint('pk', mk_conname('pk', src_column, '', '') , src_column);
+$f$
+SET search_path = 'bitemporal_internal';
 
 create or replace 
 function bitemporal_internal.fk_constraint(src_column text, fk_table text, fk_column text)
 returns text
 language sql IMMUTABLE
 as $ff$ 
-  select bitemporal_internal.mk_constraint('fk'
-             , bitemporal_internal.mk_conname('fk', src_column, fk_table, fk_column)
+  select mk_constraint('fk'
+             , mk_conname('fk', src_column, fk_table, fk_column)
              , format('%s -> %s(%s)', src_column, fk_table, fk_column) );
-$ff$;
+$ff$
+SET search_path = 'bitemporal_internal';
 
 create or replace 
 function bitemporal_internal.unique_constraint(src_column text)
 returns setof text
 language sql IMMUTABLE
 as $f$ 
-  values ( bitemporal_internal.mk_constraint('u'
-             , bitemporal_internal.mk_conname('u', src_column, '','')
+  values ( mk_constraint('u'
+             , mk_conname('u', src_column, '','')
              , format('%s', src_column) )),
        (format('CONSTRAINT %I EXCLUDE USING gist (%I WITH =, asserted WITH &&, effective WITH &&)'
-             , bitemporal_internal.mk_conname('unique', src_column, '', '')
+             , mk_conname('unique', src_column, '', '')
              , src_column)::text)
 
     ;
 --   CONSTRAINT devices_device_id_asserted_effective_excl EXCLUDE 
 --  USING gist (device_id WITH =, asserted WITH &&, effective WITH &&)
-$f$;
+$f$
+SET search_path = 'bitemporal_internal';
 
 create or replace 
 function bitemporal_internal.add_constraint(table_name text, _con text)
@@ -141,12 +146,12 @@ as $f$
 DECLARE
     src text;
     ref text;
-    rc  bitemporal_internal.fk_constraint_type%ROWTYPE;
+    rc  fk_constraint_type%ROWTYPE;
     rp int;
     lp int;
 BEGIN
     -- format('%s -> %s(%s)', src_column, fk_table, fk_column) 
-    src := bitemporal_internal.select_constraint_value(consrc) ;
+    src := select_constraint_value(consrc) ;
     rc.src_column :=  split_part(src, ' ', 1);
     ref := split_part(src, ' ', 3);
     rp := strpos(ref, '(');
@@ -159,7 +164,8 @@ BEGIN
     rc.fk_column :=  substring(ref from rp +1 for (lp - rp -1) );
     RETURN rc;
 END;
-$f$;
+$f$
+SET search_path = 'bitemporal_internal';
 
 create or replace
 function bitemporal_internal.find_fk(table_name text)

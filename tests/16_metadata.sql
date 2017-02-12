@@ -1,8 +1,6 @@
 BEGIN;
 SELECT plan( 2 );
 
-set local search_path = 'temporal_relationships','public';
-
 
 CREATE TABLE postgres_auth_methods (
     auth_method text NOT NULL unique

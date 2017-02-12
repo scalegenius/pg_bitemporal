@@ -57,7 +57,8 @@ function has_starts(a timeperiod , b timeperiod )
 returns boolean language SQL IMMUTABLE 
 as $$
   select fst(a) = fst(b) and snd(a) <> snd(b);
-$$;
+$$
+SET search_path = 'temporal_relationships';
 -- 
 -- [finishes] [finishes^-1]
 -- 
@@ -66,7 +67,8 @@ function has_finishes(a timeperiod, b timeperiod)
 returns boolean language SQL IMMUTABLE 
 as $$
   select snd(a) = snd(b) and fst(a) <> fst(b);
-$$;
+$$
+SET search_path = 'temporal_relationships';
 -- 
 -- [equals]
 -- 
@@ -76,7 +78,8 @@ returns boolean language SQL IMMUTABLE
 as $$
   -- doubtful = operator exists for timeperiod
  select fst(a) = fst(b) and snd(a) = snd(b) ;
-$$;
+$$
+SET search_path = 'temporal_relationships';
 ```
 ### During
 
@@ -97,7 +100,8 @@ function is_during(a timeperiod, b timeperiod)
 returns boolean language SQL IMMUTABLE 
 as $$
   select (fst(a) > fst(b)) and (snd(a) < snd(b));
-$$;
+$$
+SET search_path = 'temporal_relationships';
 -- 
 -- [during^-1] contained
 -- 
@@ -106,7 +110,8 @@ function is_contained_in(a timeperiod, b timeperiod)
 returns boolean language SQL IMMUTABLE 
 as $$
   select is_during(b, a);
-$$;
+$$
+SET search_path = 'temporal_relationships';
 
 --
 -- [during] or [during^-1] 
@@ -116,7 +121,8 @@ function has_during(a timeperiod, b timeperiod)
 returns boolean language SQL IMMUTABLE 
 as $$
   select is_during(a, b) or is_during(b,a);
-$$;
+$$
+SET search_path = 'temporal_relationships';
 ```
 ### Overlaps
 
@@ -137,7 +143,8 @@ returns boolean language SQL IMMUTABLE
 
 as $$
   select  fst(a) < fst(b) and snd(a) > fst(b) and snd(a) < snd(b);
-$$;
+$$
+SET search_path = 'temporal_relationships';
 
 --
 -- either overlaps the other [overlaps] [overlaps^-1]
@@ -147,7 +154,8 @@ function has_overlaps(a timeperiod, b timeperiod)
 returns boolean language SQL IMMUTABLE 
 as $$
   select  is_overlaps(a , b ) or is_overlaps(b , a ) ;
-$$;
+$$
+SET search_path = 'temporal_relationships';
 ```
 ### Before
 
@@ -167,7 +175,8 @@ function is_before(a timeperiod, b timeperiod)
 returns boolean language SQL IMMUTABLE 
 as $$
   select  snd(a) < fst(b);
-$$;
+$$
+SET search_path = 'temporal_relationships';
 -- 
 -- [before^-1]
 -- 
@@ -177,7 +186,8 @@ returns boolean language SQL IMMUTABLE
 as $$
     -- is_before(b, a)
    select snd(b) < fst(a);
-$$;
+$$
+SET search_path = 'temporal_relationships';
 
 -- 
 -- either [before] [before^-1]
@@ -187,7 +197,8 @@ function has_before(a timeperiod, b timeperiod)
 returns boolean language SQL IMMUTABLE 
 as $$
   select  snd(a) < fst(b) or snd(b) < fst(a);
-$$;
+$$
+SET search_path = 'temporal_relationships';
 ```
 ### Meets
 
@@ -208,14 +219,16 @@ function is_meets(a timeperiod, b timeperiod)
 returns boolean language SQL IMMUTABLE 
 as $$
  select  snd(a) = fst(b) ;
-$$;
+$$
+SET search_path = 'temporal_relationships';
 
 create or replace
 function has_meets(a timeperiod, b timeperiod)
 returns boolean language SQL IMMUTABLE 
 as $$
   select snd(a) = fst(b) or snd(b) = fst(a);
-$$;
+$$
+SET search_path = 'temporal_relationships';
 ```
 ### Partitioning of Relationships
 
@@ -256,7 +269,8 @@ as $$
   select  fst(a) = fst(b) or snd(a) = snd(b) or 
       (snd(a) <= snd(b) and (fst(a) >= fst(b) or fst(b) < snd(a))) or 
         (snd(a) >= snd(b) and (fst(a) < snd(b) or fst(a) <= fst(b)));
-$$;
+$$
+SET search_path = 'temporal_relationships';
 
 --
 -- [Contains]
@@ -270,7 +284,8 @@ as $$
  select fst(a) = fst(b) or snd(a) = snd(b) or 
      (snd(a) < snd(b) and fst(a) > fst(b)) or 
        (snd(b) < snd(a) and fst(b) > fst(a));
-$$;
+$$
+SET search_path = 'temporal_relationships';
 
 --
 -- [Aligns With]
@@ -281,7 +296,8 @@ function has_aligns_with(a timeperiod, b timeperiod)
 returns boolean language SQL IMMUTABLE 
 as $$
    select   xor( fst(a) = fst(b) , snd(a) = snd(b) );
-$$;
+$$
+SET search_path = 'temporal_relationships';
 
 --
 -- [Encloses]
@@ -293,7 +309,8 @@ function has_encloses(a timeperiod, b timeperiod)
 returns boolean language SQL IMMUTABLE 
 as $$
   select has_during(a,b) or has_aligns_with(a,b);
-$$;
+$$
+SET search_path = 'temporal_relationships';
 
 
 --
@@ -305,7 +322,8 @@ function has_excludes(a timeperiod, b timeperiod)
 returns boolean language SQL IMMUTABLE 
 as $$
    select fst(a) >= snd(b) or fst(b) >= snd(a) ;
-$$ ;
+$$
+SET search_path = 'temporal_relationships';
 ```
 ### Schema
 
@@ -368,7 +386,8 @@ language sql IMMUTABLE
 as
 $func$
    select tstzrange(p_range_start, p_range_end,'[)')::timeperiod;
-$func$;
+$func$
+SET search_path = 'temporal_relationships';
 -- backwards compatible
 create or replace
 function timeperiod_range( _s time_endpoint, _e time_endpoint, _ignored text)
@@ -377,7 +396,8 @@ language sql
 as
 $func$
    select timeperiod(_s,_e);
-$func$;
+$func$
+SET search_path = 'temporal_relationships';
 ```
 ### Support Functions
 
