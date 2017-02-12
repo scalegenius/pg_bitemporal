@@ -1,8 +1,6 @@
 BEGIN;
 SELECT plan( 14 );
 
-set local search_path = 'temporal_relationships','public';
-
 select  unialike( current_setting('search_path'), '%bitemporal_internal%'
   ,'bitemporal_internal should NOT be on search_path for these tests' );
 
