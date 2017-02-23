@@ -1,5 +1,6 @@
 begin;
 create schema if not exists temporal_relationships;
+grant usage on schema temporal_relationships to public;
 set local search_path to temporal_relationships, public;
 -- create a domain if not exists 
 DO $d$
