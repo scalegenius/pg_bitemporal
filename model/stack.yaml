@@ -1,4 +1,7 @@
-resolver: lts-5.3
+# For more information, see: http://docs.haskellstack.org/en/stable/yaml_configuration.html
+
+# Specifies the GHC version and set of packages available (e.g., lts-3.5, nightly-2015-09-21, ghc-7.10.2)
+resolver: lts-6.30
 
 # Local packages, usually specified by relative directory name
 packages:
@@ -13,6 +16,7 @@ flags: {}
 # Extra package databases containing global packages
 extra-package-dbs: []
 
+# Control whether we use the GHC we find on the path
 system-ghc: true
 install-ghc: false
 skip-ghc-check: false
@@ -35,3 +39,8 @@ ghc-options:
 
 # Allow a newer minor version of GHC than the snapshot specifies
 # compiler-check: newer-minor
+
+templates:
+  params:
+    copyright: Copyright (c) 2015 Scale Genius, Inc
+    github-username: scalegenius
