@@ -16,6 +16,7 @@ import qualified Data.Map as Map
 import qualified Data.List as L
 --import           Data.List (nub)
 
+import           Data.Maybe (fromJust)
 import TemporalRelationships
 import Test.QuickCheck
 
@@ -215,6 +216,12 @@ tick = TimeTick 1
 ticks ::  TimeResolution -> TimeTick
 ticks n = TimeTick (fromIntegral n)
 
+instance TimeFlow (TimePeriod, TimePeriod) where
+    timeflow t (tp1, tp2)= (timeflow t tp1, timeflow t tp2)
+
+instance TimeFlow [(TimePeriod, TimePeriod)] where
+    timeflow t = fmap (timeflow t)
+
 -- data BitRecord = BitRecord (TimePeriod, TimePeriod, TimePoint)
 -- instance TimeFlow BitRecord where
 --    timeflow t (BitRecord (tp1, tp2, created))=BitRecord (timeflow t tp1, timeflow t tp2, created)
@@ -272,10 +279,13 @@ effectiveValue e =
 pairs :: [(Assertive ,Effective)]
 pairs = [ (a, e) | a <- assertives, e <- effectives ]
 
-allboxes :: [(Assertive ,Effective)]
-allboxes = [(Posted,History), (Posted,Updates), (Posted,Projection)
+allboxes_cached :: [(Assertive ,Effective)]
+allboxes_cached = [(Posted,History), (Posted,Updates), (Posted,Projection)
            ,(Current,History),(Current,Updates),(Current,Projection)
            ,(Pending,History),(Pending,Updates),(Pending,Projection)]
+
+allboxes :: [(Assertive ,Effective)]
+allboxes = [ ( a, e ) | a <- assertives, e <- effectives ]
 
 is_past :: (TemporalRelationship t, TemporalPoint t ~ TimePoint) =>  t -> Bool 
 is_past tp =  (snd tp) < now
@@ -284,9 +294,9 @@ is_now  tp = (fst tp) <= now && (snd tp) >= now
 is_future :: (TemporalRelationship t, TemporalPoint t ~ TimePoint) =>  t -> Bool 
 is_future tp = (fst tp) > now
 
-makeItHappen :: [(Gen TimePeriod, Gen TimePeriod)] ->  IO [(TimePeriod, TimePeriod)] 
-makeItHappen pairs = do
-       x <- mapM genPair pairs
+makeItHappen :: [(Gen TimePeriod, Gen TimePeriod, Gen TimePoint)] -> IO [(TimePeriod, TimePeriod, TimePoint)] 
+makeItHappen tuples = do
+       x <- mapM genTuple tuples
        return x
 
 genPair :: (Gen TimePeriod, Gen TimePeriod) ->  IO (TimePeriod, TimePeriod)
@@ -295,8 +305,34 @@ genPair (a,b) = do
         z <- generate b
         return (y,z)
 
-genPairs = [ ( genTense $ assertiveValue a, genTense $ effectiveValue e) 
+genPairs = [ ( genTense $ assertiveValue a, genTense $ effectiveValue e ) 
                      | a <- assertives, e <- effectives ]
+
+genTuple :: (Gen TimePeriod, Gen TimePeriod, Gen TimePoint) ->  IO (TimePeriod, TimePeriod, TimePoint)
+genTuple (a,b,c) = do
+        x <- generate a
+        y <- generate b
+        z <- generate c
+        return (x,y,z)
+
+genTuples :: [(Gen TimePeriod, Gen TimePeriod, Gen TimePoint)]
+genTuples = fmap aeToBiTuple allboxes 
+--      [ ( genTense $ assertiveValue a, genTense $ effectiveValue e , genRowCreated) 
+--                     | a <- assertives, e <- effectives ]
+
+aeToBiTuple ::  (Assertive, Effective) -> (Gen TimePeriod, Gen TimePeriod, Gen TimePoint)
+aeToBiTuple (a,e) = ( genTense $ assertiveValue a, genTense $ effectiveValue e , genRowCreated) 
+
+aeFunctions :: (Assertive, Effective) -> ((TimePeriod -> Bool) , (TimePeriod -> Bool) )
+aeFunctions (a,e) = ( assertiveValue a, effectiveValue e ) 
+
+genRelationTense :: AllenRelations -> (Assertive , Effective) -> Gen OperationalTense
+genRelationTense rel ae  = do 
+     let (af, ef) = aeFunctions ae in
+        arbitrary `suchThat` (g rel af ef)
+  where g :: AllenRelations -> (TimePeriod -> Bool) -> (TimePeriod -> Bool) 
+             -> OperationalTense -> Bool
+        g rel af ef ot@(a,e) = (af a) && (ef e) && (byRelation rel ot)
 
 type OperationalTense = (TimePeriod,TimePeriod)
 --   (AllenRelations, OperationalTense)
@@ -314,14 +350,39 @@ genOperationalTense = generate arbitrary :: IO OperationalTense
 genMeets :: Gen OperationalTense
 genMeets =  arbitrary `suchThat` (byRelation Meets)
 
+genRelation :: AllenRelations -> Gen OperationalTense
+genRelation rel =  arbitrary `suchThat` (byRelation rel)
+
 byRelation:: AllenRelations -> OperationalTense -> Bool
 byRelation rel (a,b) = rel == (whichRelation a b)
 
 genTense :: (TimePeriod -> Bool) -> Gen TimePeriod
 genTense  f = arbitrary `suchThat` f
 
+genRowCreated :: Gen TimePoint
+genRowCreated = 
+      arbitrary `suchThat` notInfinity
+  where notInfinity a = a /= TimePointInfinity 
 
 
+getRelationFunction rel = fromJust $ Map.lookup rel allenRelationOps
+
+-- checkRelation :: AllenRelations -> (TimePeriod, TimePeriod, TimePoint) -> Bool
+checkRelation f (a,b,_) = 
+            f a b
+
+test1 = do
+           d <- mapM genTuple (test_pathgenerated rel)
+           print $ (fromJust $ Map.lookup rel possiblePaths ) 
+           print d
+           print $ (fmap (f)) d
+  where rel = Before
+        f = (checkRelation (getRelationFunction Before))
+
+test_pathgenerated rel = fmap aeToBiTuple $ (fromJust $ Map.lookup rel possiblePaths )
+
+
+------------------------
 main = do
     x <- genTimePeriod
     y <- genBitRecord
@@ -337,6 +398,8 @@ main = do
     putStrLn $ show (bb )
     putStrLn $ "Generate 9 Boxes"
     putStrLn $ show boxes
+    putStrLn $ "Generate Possible Paths"
+    test1
 
 -- type AllenRelationshipFunction = (t -> t -> Bool)
 validTense :: (TemporalRelationship t) => (t->t->Bool) -> TimePeriod -> TimePeriod -> TimePoint -> Bool
