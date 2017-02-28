@@ -11,8 +11,9 @@ v_rowcount INTEGER:=0;
 BEGIN 
 --end assertion period for the current records record(s)
 
-EXECUTE format($u$ UPDATE %s SET asserted = temporal_relationships.timeperiod_range(lower(asserted), lower(%L::timeperiod), '[)')
-                    WHERE ( %s )=( %s )AND lower(%L::timeperiod)<@ asserted  $u$  
+EXECUTE format($u$ UPDATE %s SET asserted =
+temporal_relationships.timeperiod(lower(asserted), lower(%L::temporal_relationships.timeperiod))
+                    WHERE ( %s )=( %s )AND lower(%L::temporal_relationships.timeperiod)<@ asserted  $u$
           , p_table
           , p_asserted
           , p_search_fields   

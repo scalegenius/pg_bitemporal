@@ -1,10 +1,15 @@
 
 BEGIN;
 set client_min_messages to warning;
-set local search_path = 'bi_temp_tables','bitemporal_internal','temporal_relationships','public';
+set local search_path = 'bi_temp_tables','bitemporal_internal','public';
 set local TimeZone  = 'UTC';
 
-SELECT plan(21);
+SELECT plan(22);
+
+select  unialike( current_setting('search_path'), '%temporal_relationships%'
+  ,'temporal_relationships should NOT be on search_path for these tests' );
+
+
 
 select lives_ok($$ 
     create schema bi_temp_tables 
@@ -23,8 +28,8 @@ select lives_ok($$
   ) 
 $$, 'create devices manual');
 
-select lives_ok($$select * from bitemporal_internal.ll_create_bitemporal_table('bi_temp_tables.devices', 
-'device_id_key serial,device_id integer, device_descr text', 'device_id') 
+select lives_ok($$select * from bitemporal_internal.ll_create_bitemporal_table('bi_temp_tables','devices', 
+'device_id integer, device_descr text', 'device_id') 
 $$, 'create devices');
 
 select lives_ok($$

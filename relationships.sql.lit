@@ -56,7 +56,8 @@ The order of the arguments is unimportant to these relationship.
       returns boolean language SQL IMMUTABLE 
       as $$
         select fst(a) = fst(b) and snd(a) <> snd(b);
-      $$;
+      $$
+      SET search_path = 'temporal_relationships';
       -- 
       -- [finishes] [finishes^-1]
       -- 
@@ -65,7 +66,8 @@ The order of the arguments is unimportant to these relationship.
       returns boolean language SQL IMMUTABLE 
       as $$
         select snd(a) = snd(b) and fst(a) <> fst(b);
-      $$;
+      $$
+      SET search_path = 'temporal_relationships';
       -- 
       -- [equals]
       -- 
@@ -75,7 +77,8 @@ The order of the arguments is unimportant to these relationship.
       as $$
         -- doubtful = operator exists for timeperiod
        select fst(a) = fst(b) and snd(a) = snd(b) ;
-      $$;
+      $$
+      SET search_path = 'temporal_relationships';
 
 ### During
 
@@ -95,7 +98,8 @@ It is unclear if this function would be needed.
       returns boolean language SQL IMMUTABLE 
       as $$
         select (fst(a) > fst(b)) and (snd(a) < snd(b));
-      $$;
+      $$
+      SET search_path = 'temporal_relationships';
       -- 
       -- [during^-1] contained
       -- 
@@ -104,7 +108,8 @@ It is unclear if this function would be needed.
       returns boolean language SQL IMMUTABLE 
       as $$
         select is_during(b, a);
-      $$;
+      $$
+      SET search_path = 'temporal_relationships';
 
       --
       -- [during] or [during^-1] 
@@ -114,7 +119,8 @@ It is unclear if this function would be needed.
       returns boolean language SQL IMMUTABLE 
       as $$
         select is_during(a, b) or is_during(b,a);
-      $$;
+      $$
+      SET search_path = 'temporal_relationships';
 
 ### Overlaps
 
@@ -134,7 +140,8 @@ overlaps a. has\_overlaps implements both cases of overlap.
 
       as $$
         select  fst(a) < fst(b) and snd(a) > fst(b) and snd(a) < snd(b);
-      $$;
+      $$
+      SET search_path = 'temporal_relationships';
 
       --
       -- either overlaps the other [overlaps] [overlaps^-1]
@@ -144,7 +151,8 @@ overlaps a. has\_overlaps implements both cases of overlap.
       returns boolean language SQL IMMUTABLE 
       as $$
         select  is_overlaps(a , b ) or is_overlaps(b , a ) ;
-      $$;
+      $$
+      SET search_path = 'temporal_relationships';
 
 ### Before
 
@@ -163,7 +171,8 @@ other without regard to which.
       returns boolean language SQL IMMUTABLE 
       as $$
         select  snd(a) < fst(b);
-      $$;
+      $$
+      SET search_path = 'temporal_relationships';
       -- 
       -- [before^-1]
       -- 
@@ -173,7 +182,8 @@ other without regard to which.
       as $$
           -- is_before(b, a)
          select snd(b) < fst(a);
-      $$;
+      $$
+      SET search_path = 'temporal_relationships';
 
       -- 
       -- either [before] [before^-1]
@@ -183,7 +193,8 @@ other without regard to which.
       returns boolean language SQL IMMUTABLE 
       as $$
         select  snd(a) < fst(b) or snd(b) < fst(a);
-      $$;
+      $$
+      SET search_path = 'temporal_relationships';
 
 ### Meets
 
@@ -203,14 +214,16 @@ case of whether two time periods meet in either way.
       returns boolean language SQL IMMUTABLE 
       as $$
        select  snd(a) = fst(b) ;
-      $$;
+      $$
+      SET search_path = 'temporal_relationships';
 
       create or replace
       function has_meets(a timeperiod, b timeperiod)
       returns boolean language SQL IMMUTABLE 
       as $$
         select snd(a) = fst(b) or snd(b) = fst(a);
-      $$;
+      $$
+      SET search_path = 'temporal_relationships';
 
 ### Partitioning of Relationships
 
@@ -250,7 +263,8 @@ order of arguements.
         select  fst(a) = fst(b) or snd(a) = snd(b) or 
             (snd(a) <= snd(b) and (fst(a) >= fst(b) or fst(b) < snd(a))) or 
               (snd(a) >= snd(b) and (fst(a) < snd(b) or fst(a) <= fst(b)));
-      $$;
+      $$
+      SET search_path = 'temporal_relationships';
 
       --
       -- [Contains]
@@ -264,7 +278,8 @@ order of arguements.
        select fst(a) = fst(b) or snd(a) = snd(b) or 
            (snd(a) < snd(b) and fst(a) > fst(b)) or 
              (snd(b) < snd(a) and fst(b) > fst(a));
-      $$;
+      $$
+      SET search_path = 'temporal_relationships';
 
       --
       -- [Aligns With]
@@ -275,7 +290,8 @@ order of arguements.
       returns boolean language SQL IMMUTABLE 
       as $$
          select   xor( fst(a) = fst(b) , snd(a) = snd(b) );
-      $$;
+      $$
+      SET search_path = 'temporal_relationships';
 
       --
       -- [Encloses]
@@ -287,7 +303,8 @@ order of arguements.
       returns boolean language SQL IMMUTABLE 
       as $$
         select has_during(a,b) or has_aligns_with(a,b);
-      $$;
+      $$
+      SET search_path = 'temporal_relationships';
 
 
       --
@@ -299,7 +316,8 @@ order of arguements.
       returns boolean language SQL IMMUTABLE 
       as $$
          select fst(a) >= snd(b) or fst(b) >= snd(a) ;
-      $$ ;
+      $$
+      SET search_path = 'temporal_relationships';
 
 ### Schema
 
@@ -360,7 +378,8 @@ order of arguements.
    as
    $func$
       select tstzrange(p_range_start, p_range_end,'[)')::timeperiod;
-   $func$;
+   $func$
+   SET search_path = 'temporal_relationships';
    -- backwards compatible
    create or replace
    function timeperiod_range( _s time_endpoint, _e time_endpoint, _ignored text)
@@ -369,7 +388,8 @@ order of arguements.
    as
    $func$
       select timeperiod(_s,_e);
-   $func$;
+   $func$
+   SET search_path = 'temporal_relationships';
 
 
 ### Support Functions
