@@ -327,12 +327,30 @@ aeFunctions :: (Assertive, Effective) -> ((TimePeriod -> Bool) , (TimePeriod -> 
 aeFunctions (a,e) = ( assertiveValue a, effectiveValue e ) 
 
 genRelationTense :: AllenRelations -> (Assertive , Effective) -> Gen OperationalTense
+genRelationTense Equals ae  = do 
+     let (af, ef) = aeFunctions ae in do
+        (a,_) <- arbitrary `suchThat` (g af ef)
+        return (a,a)
+  where g :: (TimePeriod -> Bool) -> (TimePeriod -> Bool) 
+             -> OperationalTense -> Bool
+        g af ef (a,_) = (af a) && (ef a)
+
 genRelationTense rel ae  = do 
      let (af, ef) = aeFunctions ae in
         arbitrary `suchThat` (g rel af ef)
   where g :: AllenRelations -> (TimePeriod -> Bool) -> (TimePeriod -> Bool) 
              -> OperationalTense -> Bool
         g rel af ef ot@(a,e) = (af a) && (ef e) && (byRelation rel ot)
+
+relations = [Equals,Before,After,Meets,MeetsInverse,During,DuringInverse,Start,StartInverse,Finish,FinishInverse,Overlap,OverlapInverse]
+
+magicHappen :: [(AllenRelations, [(Assertive, Effective)])] -> [Gen OperationalTense]
+magicHappen list = 
+            L.concat $ (L.map grt list)
+      where grt (rel, lst) = L.map (genRelationTense rel) lst
+
+possiblePath rel = fromJust $ Map.lookup rel possiblePaths
+
 
 type OperationalTense = (TimePeriod,TimePeriod)
 --   (AllenRelations, OperationalTense)
@@ -365,6 +383,7 @@ genRowCreated =
   where notInfinity a = a /= TimePointInfinity 
 
 
+getRelationFunction   :: TemporalRelationship t => AllenRelations -> t -> t -> Bool
 getRelationFunction rel = fromJust $ Map.lookup rel allenRelationOps
 
 -- checkRelation :: AllenRelations -> (TimePeriod, TimePeriod, TimePoint) -> Bool
@@ -386,20 +405,25 @@ test_pathgenerated rel = fmap aeToBiTuple $ (fromJust $ Map.lookup rel possibleP
 main = do
     x <- genTimePeriod
     y <- genBitRecord
-    z <- generate infiniteList :: IO [OperationalTense]
-    aa <- generate genMeets
-    bb <- generate $ genTense (is_future)
     boxes <- mapM genPair genPairs
+    aa <- mapM generate ( magicHappen (Map.toList possiblePaths) )
     putStrLn "Main"
     putStrLn $ show x
     putStrLn $ show y
-    putStrLn $ show (take 5 $ z)
-    putStrLn $ show (aa )
-    putStrLn $ show (bb )
     putStrLn $ "Generate 9 Boxes"
     putStrLn $ show boxes
     putStrLn $ "Generate Possible Paths"
     test1
+    putStrLn $ "Generate All Possible Paths"
+    putStrLn $ show aa
+    
+--    z <- generate infiniteList :: IO [OperationalTense]
+--    aa <- generate genMeets
+--    bb <- generate $ genTense (is_future)
+--    putStrLn $ show (take 5 $ z)
+--    putStrLn $ show (aa )
+--    putStrLn $ show (bb )
+
 
 -- type AllenRelationshipFunction = (t -> t -> Bool)
 validTense :: (TemporalRelationship t) => (t->t->Bool) -> TimePeriod -> TimePeriod -> TimePoint -> Bool
@@ -431,7 +455,7 @@ data AllenRelations =  Equals | Before | After
 --}
 
 
-whichRelation :: (TemporalRelationship t) => t -> t -> AllenRelations
+whichRelation :: (Ord t, TemporalRelationship t) => t -> t -> AllenRelations
 whichRelation a b = 
       if ( has_excludes a b) then 
           if (has_before a b) then
@@ -461,9 +485,15 @@ whichRelation a b =
                         DuringInverse
                 else -- has_aligns_with a b
                     if (has_starts a b) then
-                        Start -- Should flip between StartInverse
+                        case (compare a b) of
+                          LT -> StartInverse
+                          _  -> Start
                     else
-                        Finish -- Should flip between FinishInverse
+                        case (compare a b) of
+                          GT -> FinishInverse
+                          _  -> Finish
+      
+                        
   
 
 allenRelationOps :: (TemporalRelationship t) => Map AllenRelations (t->t->Bool)
@@ -512,7 +542,7 @@ possiblePaths = Map.fromList [
   , ( Finish, [(Posted,History),(Current,Updates)
             ,(Current,Projection),(Pending,Projection)])
   , ( FinishInverse, [(Posted,History),(Current,Updates)
-                  ,(Pending,Updates),(Pending,Projection)])
+                    ,(Pending,Updates),(Pending,Projection)])
   , ( Overlap, [(Posted,History),(Posted,Updates),(Current,Updates)
                  ,(Current,Projection) ,(Pending,Projection)])
   , ( OverlapInverse, [(Posted,History),(Current,History),(Current,Updates)
