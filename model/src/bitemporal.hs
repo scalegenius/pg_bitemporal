@@ -111,6 +111,8 @@ let newdb = map update row ++ rest
 
 -- | Constraints
 --
+class Sql t where
+    toSQL :: t -> String
 
 class TimeFlow a where
     timeflow :: TimeTick -> a -> a
@@ -129,6 +131,10 @@ data TimeTick = TimeTick TimeResolution
   deriving (Show)
 
 data TimePoint = TimePoint TimeResolution | TimePointInfinity
+
+instance Sql TimePoint where
+    toSQL TimePointInfinity = "'infinity'::date"
+    toSQL (TimePoint x) = "(current_date + interval '" ++ (show x) ++ " days')::date"
 
 instance Show TimePoint where
   show TimePointInfinity = "infinity" 
@@ -177,6 +183,9 @@ instance Arbitrary TimePoint where
 
 data TimePeriod = TimePeriod TimePoint TimePoint
 
+instance Sql TimePeriod where
+    toSQL (TimePeriod a b)= "daterange(" ++ (toSQL a) ++ "," ++ (toSQL b) ++ ", '[)')"
+
 instance Show TimePeriod where
   show (TimePeriod tp1 tp2)  = "\"[" ++(show tp1) ++ ", " ++ (show tp2) ++ ")\""
 
@@ -222,9 +231,188 @@ instance TimeFlow (TimePeriod, TimePeriod) where
 instance TimeFlow [(TimePeriod, TimePeriod)] where
     timeflow t = fmap (timeflow t)
 
+
+data Assertive = Posted | Current | Pending
+        deriving (Show, Eq, Ord)
+assertives :: [Assertive ]
+assertives = [Posted, Current, Pending]
+
+
+-- Posted  (-1, _)
+-- Current ( 0, _)
+-- Pending ( 1, _)
+instance TimeDimensionPredicate Assertive where
+   timePredicate a = case a of
+      Posted -> (is_past)
+      Current ->  (is_now)
+      Pending ->  (is_future)
+
+data Effective = History | Updates | Projection
+        deriving (Show, Eq, Ord)
+effectives :: [Effective ]
+effectives = [History, Updates, Projection]
+-- History    (_,-1)
+-- Updates    (_, 0)
+-- Projection (_, 1)
+
+instance TimeDimensionPredicate Effective where
+   timePredicate e =  case e of
+      History -> (is_past)
+      Updates -> (is_now)
+      Projection -> (is_future)
+
+class TimeDimensionPredicate t where
+    timePredicate :: t -> (TimePeriod -> Bool)
+
+timePredicates :: (Assertive, Effective) -> ((TimePeriod -> Bool) , (TimePeriod -> Bool) )
+timePredicates (a,e) = ( timePredicate a, timePredicate e )
+
+allboxes_cached :: [(Assertive ,Effective)]
+allboxes_cached = [(Posted,History), (Posted,Updates), (Posted,Projection)
+           ,(Current,History),(Current,Updates),(Current,Projection)
+           ,(Pending,History),(Pending,Updates),(Pending,Projection)]
+allboxes :: [(Assertive ,Effective)]
+allboxes = [ ( a, e ) | a <- assertives, e <- effectives ]
+
+is_past :: (TemporalRelationship t, TemporalPoint t ~ TimePoint) =>  t -> Bool 
+is_past tp =  (snd tp) < now
+is_now  :: (TemporalRelationship t, TemporalPoint t ~ TimePoint) =>  t -> Bool 
+is_now  tp = (fst tp) <= now && (snd tp) >= now
+is_future :: (TemporalRelationship t, TemporalPoint t ~ TimePoint) =>  t -> Bool 
+is_future tp = (fst tp) > now
+
+
+genPair :: Gen OperationalTense ->  IO (TimePeriod, TimePeriod)
+genPair a = do
+        (y,z) <- generate a
+        return (y,z)
+genPairs = fmap genTense $ [ ( a, e ) | a <- assertives, e <- effectives ]
+
+genTense :: (Assertive , Effective) -> Gen OperationalTense
+genTense ae = do
+     let (af, ef) = timePredicates ae in do
+        arbitrary `suchThat` (g af ef) :: Gen OperationalTense
+  where g :: (TimePeriod -> Bool) -> (TimePeriod -> Bool) -> OperationalTense -> Bool
+        g af ef (a,e) = (af a) && (ef e)
+
+genTuple :: (Gen OperationalTense, Gen TimePoint) ->  IO (TimePeriod, TimePeriod, TimePoint)
+genTuple (a,c) = do
+        (x,y) <- generate a
+        z <- generate c
+        return (x,y,z)
+
+genTuples :: [(Gen OperationalTense, Gen TimePoint)]
+genTuples =
+     fmap g $ fmap genTense [ ( a, e ) | a <- assertives, e <- effectives ]
+  where
+      g a = (a, genRowCreated)
+
+
+genRelationTense :: AllenRelations -> (Assertive , Effective) -> Gen OperationalTense
+genRelationTense Equals ae  = do 
+     let (af, ef) = timePredicates ae in do
+        (a,_) <- arbitrary `suchThat` (g af ef)
+        return (a,a)
+  where g :: (TimePeriod -> Bool) -> (TimePeriod -> Bool) 
+             -> OperationalTense -> Bool
+        g af ef (a,_) = (af a) && (ef a)
+
+genRelationTense rel ae  = do 
+     let (af, ef) = timePredicates ae in
+        arbitrary `suchThat` (g rel af ef)
+  where g :: AllenRelations -> (TimePeriod -> Bool) -> (TimePeriod -> Bool) 
+             -> OperationalTense -> Bool
+        g rel af ef ot@(a,e) = (af a) && (ef e) && (byRelation rel ot)
+
+magicHappen :: [(AllenRelations, [(Assertive, Effective)])] -> [Gen OperationalTense]
+magicHappen list = 
+            L.concat $ (L.map grt list)
+      where grt (rel, lst) = L.map (genRelationTense rel) lst
+
+possiblePath rel = fromJust $ Map.lookup rel possiblePaths
+
+
+type OperationalTense = (TimePeriod,TimePeriod)
+--   (AllenRelations, OperationalTense)
+--   (AllenRelations, OperationalTense, NowTimePoint)
+
+instance Sql OperationalTense where
+    toSQL (a,b)= "insert into (" ++ (toSQL a) ++ ", " ++ (toSQL b) ++ ");"
+
+genTimePeriod :: IO TimePeriod
+genTimePeriod = generate arbitrary :: IO TimePeriod
+
+genBitRecord :: IO BitRecord
+genBitRecord  = generate arbitrary :: IO BitRecord
+
+genOperationalTense :: IO OperationalTense 
+genOperationalTense = generate arbitrary :: IO OperationalTense 
+
+genRelation :: AllenRelations -> Gen OperationalTense
+genRelation rel =  arbitrary `suchThat` (byRelation rel)
+
+byRelation:: AllenRelations -> OperationalTense -> Bool
+byRelation rel (a,b) = rel == (whichRelation a b)
+
+genRowCreated :: Gen TimePoint
+genRowCreated = 
+      arbitrary `suchThat` notInfinity
+  where notInfinity a = a /= TimePointInfinity 
+
+test1 = do
+           d <- mapM genTuple (test_pathgenerated rel)
+           print $ (fromJust $ Map.lookup rel possiblePaths ) 
+           print d
+           print $ (fmap (f)) d
+  where
+     genTuple (a,b,c) = do
+        x <- generate a
+        y <- generate b
+        z <- generate c
+        return (x,y,z)
+     rel = Before
+     f = (uncurry3' (getRelationFunction Before))
+     uncurry3' :: (t1 -> t2 -> t) -> (t1, t2, t3) -> t
+     uncurry3' f (a,b,_) = f a b
+     test_pathgenerated rel = fmap aeToBiTuple $ (fromJust $ Map.lookup rel possiblePaths )
+     genTimePeriodif :: (TimePeriod -> Bool) -> Gen TimePeriod
+     genTimePeriodif f = arbitrary `suchThat` f
+     aeToBiTuple :: (Assertive, Effective) -> (Gen TimePeriod, Gen TimePeriod, Gen TimePoint)
+     aeToBiTuple (a,e) =(genTimePeriodif $ timePredicate a, genTimePeriodif $ timePredicate e, genRowCreated)
+     getRelationFunction   :: TemporalRelationship t => AllenRelations -> t -> t -> Bool
+     getRelationFunction rel = fromJust $ Map.lookup rel allenRelationOps
+
+
+
+------------------------
+main = do
+    x <- genTimePeriod
+    y <- genBitRecord
+    boxes <- mapM genPair genPairs
+    aa <- mapM generate ( magicHappen (Map.toList possiblePaths) )
+    putStrLn "Main"
+    putStrLn $ show x
+    putStrLn $ show y
+    putStrLn $ "Generate 9 Boxes"
+    putStrLn $ show boxes
+    putStrLn $ "Generate Possible Paths"
+    test1
+    putStrLn $ "Generate All Possible Paths"
+    putStrLn $ show aa
+    putStrLn $ concat (fmap toSQL aa)
+    
+--    z <- generate infiniteList :: IO [OperationalTense]
+--    aa <- generate genMeets
+--    putStrLn $ show (take 5 $ z)
+--    putStrLn $ show (aa )
+--    putStrLn $ show (bb )
+
+
+
 -- data BitRecord = BitRecord (TimePeriod, TimePeriod, TimePoint)
 -- instance TimeFlow BitRecord where
 --    timeflow t (BitRecord (tp1, tp2, created))=BitRecord (timeflow t tp1, timeflow t tp2, created)
+-- type BitRecord = (AllenRelations, (Assertive, Effective), TimePeriod, TimePeriod, TimePoint)
 type BitRecord = (TimePeriod, TimePeriod, TimePoint)
 instance TimeFlow (TimePeriod, TimePeriod, TimePoint) where
     timeflow t (tp1, tp2, created)= (timeflow t tp1, timeflow t tp2, created)
@@ -243,190 +431,11 @@ mkBitRecord  = ( mkTimePeriod 10 $ ticks 5, mkTimePeriod 5 $ ticks 15, TimePoint
 
 mkBR :: TimeResolution -> TimeResolution -> TimeResolution -> TimeResolution -> BitRecord
 mkBR i iLen j jLen = ( mkTimePeriod i (ticks iLen), mkTimePeriod j (ticks jLen), TimePoint 0 )
-
 -- generateBitemporal :: Assertive -> Effective -> Now -> BitRecord
 -- generateBitemporal a e =  BitRecord (,,) (assertive a) (effecitve e)
 
-data Assertive = Posted | Current | Pending
-        deriving (Show, Eq, Ord)
-assertives :: [Assertive ]
-assertives = [Posted, Current, Pending]
--- Posted  (-1, _)
--- Current ( 0, _)
--- Pending ( 1, _)
-assertiveValue :: Assertive -> (TimePeriod->Bool)
-assertiveValue a = 
-    case a of
-      Posted -> (is_past)
-      Current ->  (is_now)
-      Pending ->  (is_future)
-
-data Effective = History | Updates | Projection
-        deriving (Show, Eq, Ord)
-effectives :: [Effective ]
-effectives = [History, Updates, Projection]
--- History    (_,-1)
--- Updates    (_, 0)
--- Projection (_, 1)
-
-effectiveValue :: Effective -> (TimePeriod->Bool)
-effectiveValue e = 
-    case e of
-      History -> (is_past)
-      Updates -> (is_now)
-      Projection -> (is_future)
-
-pairs :: [(Assertive ,Effective)]
-pairs = [ (a, e) | a <- assertives, e <- effectives ]
-
-allboxes_cached :: [(Assertive ,Effective)]
-allboxes_cached = [(Posted,History), (Posted,Updates), (Posted,Projection)
-           ,(Current,History),(Current,Updates),(Current,Projection)
-           ,(Pending,History),(Pending,Updates),(Pending,Projection)]
-
-allboxes :: [(Assertive ,Effective)]
-allboxes = [ ( a, e ) | a <- assertives, e <- effectives ]
-
-is_past :: (TemporalRelationship t, TemporalPoint t ~ TimePoint) =>  t -> Bool 
-is_past tp =  (snd tp) < now
-is_now  :: (TemporalRelationship t, TemporalPoint t ~ TimePoint) =>  t -> Bool 
-is_now  tp = (fst tp) <= now && (snd tp) >= now
-is_future :: (TemporalRelationship t, TemporalPoint t ~ TimePoint) =>  t -> Bool 
-is_future tp = (fst tp) > now
-
-makeItHappen :: [(Gen TimePeriod, Gen TimePeriod, Gen TimePoint)] -> IO [(TimePeriod, TimePeriod, TimePoint)] 
-makeItHappen tuples = do
-       x <- mapM genTuple tuples
-       return x
-
-genPair :: (Gen TimePeriod, Gen TimePeriod) ->  IO (TimePeriod, TimePeriod)
-genPair (a,b) = do
-        y <- generate a
-        z <- generate b
-        return (y,z)
-
-genPairs = [ ( genTense $ assertiveValue a, genTense $ effectiveValue e ) 
-                     | a <- assertives, e <- effectives ]
-
-genTuple :: (Gen TimePeriod, Gen TimePeriod, Gen TimePoint) ->  IO (TimePeriod, TimePeriod, TimePoint)
-genTuple (a,b,c) = do
-        x <- generate a
-        y <- generate b
-        z <- generate c
-        return (x,y,z)
-
-genTuples :: [(Gen TimePeriod, Gen TimePeriod, Gen TimePoint)]
-genTuples = fmap aeToBiTuple allboxes 
---      [ ( genTense $ assertiveValue a, genTense $ effectiveValue e , genRowCreated) 
---                     | a <- assertives, e <- effectives ]
-
-aeToBiTuple ::  (Assertive, Effective) -> (Gen TimePeriod, Gen TimePeriod, Gen TimePoint)
-aeToBiTuple (a,e) = ( genTense $ assertiveValue a, genTense $ effectiveValue e , genRowCreated) 
-
-aeFunctions :: (Assertive, Effective) -> ((TimePeriod -> Bool) , (TimePeriod -> Bool) )
-aeFunctions (a,e) = ( assertiveValue a, effectiveValue e ) 
-
-genRelationTense :: AllenRelations -> (Assertive , Effective) -> Gen OperationalTense
-genRelationTense Equals ae  = do 
-     let (af, ef) = aeFunctions ae in do
-        (a,_) <- arbitrary `suchThat` (g af ef)
-        return (a,a)
-  where g :: (TimePeriod -> Bool) -> (TimePeriod -> Bool) 
-             -> OperationalTense -> Bool
-        g af ef (a,_) = (af a) && (ef a)
-
-genRelationTense rel ae  = do 
-     let (af, ef) = aeFunctions ae in
-        arbitrary `suchThat` (g rel af ef)
-  where g :: AllenRelations -> (TimePeriod -> Bool) -> (TimePeriod -> Bool) 
-             -> OperationalTense -> Bool
-        g rel af ef ot@(a,e) = (af a) && (ef e) && (byRelation rel ot)
-
-relations = [Equals,Before,After,Meets,MeetsInverse,During,DuringInverse,Start,StartInverse,Finish,FinishInverse,Overlap,OverlapInverse]
-
-magicHappen :: [(AllenRelations, [(Assertive, Effective)])] -> [Gen OperationalTense]
-magicHappen list = 
-            L.concat $ (L.map grt list)
-      where grt (rel, lst) = L.map (genRelationTense rel) lst
-
-possiblePath rel = fromJust $ Map.lookup rel possiblePaths
-
-
-type OperationalTense = (TimePeriod,TimePeriod)
---   (AllenRelations, OperationalTense)
---   (AllenRelations, OperationalTense, NowTimePoint)
-
-genTimePeriod :: IO TimePeriod
-genTimePeriod = generate arbitrary :: IO TimePeriod
-
-genBitRecord :: IO BitRecord
-genBitRecord  = generate arbitrary :: IO BitRecord
-
-genOperationalTense :: IO OperationalTense 
-genOperationalTense = generate arbitrary :: IO OperationalTense 
-
-genMeets :: Gen OperationalTense
-genMeets =  arbitrary `suchThat` (byRelation Meets)
-
-genRelation :: AllenRelations -> Gen OperationalTense
-genRelation rel =  arbitrary `suchThat` (byRelation rel)
-
-byRelation:: AllenRelations -> OperationalTense -> Bool
-byRelation rel (a,b) = rel == (whichRelation a b)
-
-genTense :: (TimePeriod -> Bool) -> Gen TimePeriod
-genTense  f = arbitrary `suchThat` f
-
-genRowCreated :: Gen TimePoint
-genRowCreated = 
-      arbitrary `suchThat` notInfinity
-  where notInfinity a = a /= TimePointInfinity 
-
-
-getRelationFunction   :: TemporalRelationship t => AllenRelations -> t -> t -> Bool
-getRelationFunction rel = fromJust $ Map.lookup rel allenRelationOps
-
--- checkRelation :: AllenRelations -> (TimePeriod, TimePeriod, TimePoint) -> Bool
-checkRelation f (a,b,_) = 
-            f a b
-
-test1 = do
-           d <- mapM genTuple (test_pathgenerated rel)
-           print $ (fromJust $ Map.lookup rel possiblePaths ) 
-           print d
-           print $ (fmap (f)) d
-  where rel = Before
-        f = (checkRelation (getRelationFunction Before))
-
-test_pathgenerated rel = fmap aeToBiTuple $ (fromJust $ Map.lookup rel possiblePaths )
-
-
-------------------------
-main = do
-    x <- genTimePeriod
-    y <- genBitRecord
-    boxes <- mapM genPair genPairs
-    aa <- mapM generate ( magicHappen (Map.toList possiblePaths) )
-    putStrLn "Main"
-    putStrLn $ show x
-    putStrLn $ show y
-    putStrLn $ "Generate 9 Boxes"
-    putStrLn $ show boxes
-    putStrLn $ "Generate Possible Paths"
-    test1
-    putStrLn $ "Generate All Possible Paths"
-    putStrLn $ show aa
-    
---    z <- generate infiniteList :: IO [OperationalTense]
---    aa <- generate genMeets
---    bb <- generate $ genTense (is_future)
---    putStrLn $ show (take 5 $ z)
---    putStrLn $ show (aa )
---    putStrLn $ show (bb )
-
-
 -- type AllenRelationshipFunction = (t -> t -> Bool)
-validTense :: (TemporalRelationship t) => (t->t->Bool) -> TimePeriod -> TimePeriod -> TimePoint -> Bool
+validTense :: (TemporalRelationship t) => (t->t->Bool)->TimePeriod->TimePeriod->TimePoint->Bool
 validTense _allenRelation _assertive _effective _now  = False
 
 {--
@@ -494,7 +503,7 @@ whichRelation a b =
                           _  -> Finish
       
                         
-  
+relations = [Equals,Before,After,Meets,MeetsInverse,During,DuringInverse,Start,StartInverse,Finish,FinishInverse,Overlap,OverlapInverse]
 
 allenRelationOps :: (TemporalRelationship t) => Map AllenRelations (t->t->Bool)
 allenRelationOps = Map.fromList [
@@ -559,15 +568,15 @@ xxxx=   [(Equals,3),(Before,5),(After,5)
         ,(Overlap,5),(OverlapInverse,5)]
 --}
 --copy
-{--
-           [(Posted,History)
-          , (Posted,Updates), (Posted,Projection)
-           ,(Current,History),(Current,Updates),(Current,Projection)
-           ,(Pending,History),(Pending,Updates)
-        ,(Pending,Projection)]
+--           [(Posted,History)
+--          , (Posted,Updates), (Posted,Projection)
+--           ,(Current,History),(Current,Updates),(Current,Projection)
+--           ,(Pending,History),(Pending,Updates)
+--        ,(Pending,Projection)]
+--
 
---}
--- createTimePoint = 
+
+
 -- class (Assertive a, Effective e) => Ops a e where
 
 -- UpdateEffective == BitemporalUpdate
@@ -600,3 +609,4 @@ op UpdateEffective (Current, Updates) date =
   where isPast _ = True
         isFuture _ = False
 op _operation _box _ =  Nothing
+
