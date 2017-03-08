@@ -39,9 +39,9 @@ relationship and its inverse, such as *has\_starts* implementing *[Starts]* and
 
 ### Starts, Finishes and Equals
 
-The has\_starts is [starts] and [starts^-1]. 
-The has\_finishes is [finishes] [finishes^-1]. 
-THe equals is [equals]. As it is a single relationship that is its own inverse
+The has\_starts is [starts] and [starts^-1].
+The has\_finishes is [finishes] [finishes^-1].
+The equals is [equals]. As it is a single relationship that is its own inverse
 neither is or has prefix was used.
 
 The order of the arguments is unimportant to these relationship.
@@ -49,9 +49,17 @@ The order of the arguments is unimportant to these relationship.
 
 ```Sql
 << simple functions >>=
--- 
+--
 -- [starts] [starts^-1]
--- 
+--
+-- [starts A E]
+--  A  |---|
+--  E  |-------|
+--
+-- [starts^-1 A E]
+--  A  |-------|
+--  E  |---|
+--
 create or replace
 function has_starts(a timeperiod , b timeperiod )
 returns boolean language SQL IMMUTABLE 
@@ -59,9 +67,17 @@ as $$
   select fst(a) = fst(b) and snd(a) <> snd(b);
 $$
 SET search_path = 'temporal_relationships';
--- 
+--
 -- [finishes] [finishes^-1]
--- 
+--
+-- [finishes A E]
+--  A  |-------|
+--  E      |---|
+--
+-- [finishes^-1 A E]
+--  A      |---|
+--  E  |-------|
+--
 create or replace
 function has_finishes(a timeperiod, b timeperiod)
 returns boolean language SQL IMMUTABLE 
@@ -69,9 +85,13 @@ as $$
   select snd(a) = snd(b) and fst(a) <> fst(b);
 $$
 SET search_path = 'temporal_relationships';
--- 
+--
 -- [equals]
--- 
+--
+-- [equals A E]
+--  A  |----|
+--  E  |----|
+--
 create or replace
 function equals(a timeperiod, b timeperiod)
 returns boolean language SQL IMMUTABLE 
@@ -92,9 +112,13 @@ It is unclear if this function would be needed.
 
 ```Sql
 << during functions >>=
--- 
--- [during] 
--- 
+--
+-- [during]
+--
+-- [during A E]
+--  A    |---|
+--  E  |-------|
+--
 create or replace
 function is_during(a timeperiod, b timeperiod)
 returns boolean language SQL IMMUTABLE 
@@ -102,9 +126,13 @@ as $$
   select (fst(a) > fst(b)) and (snd(a) < snd(b));
 $$
 SET search_path = 'temporal_relationships';
--- 
+--
 -- [during^-1] contained
--- 
+--
+-- [during^-1 A E]
+--  A  |-------|
+--  E    |---|
+--
 create or replace
 function is_contained_in(a timeperiod, b timeperiod)
 returns boolean language SQL IMMUTABLE 
@@ -134,9 +162,17 @@ overlaps a. has\_overlaps implements both cases of overlap.
 
 ```Sql
 << overlaps functions >>=
--- 
--- [overlaps] 
--- 
+--
+-- [overlaps]
+--
+-- [overlaps A E]
+--  A  |-----|
+--  E     |-----|
+--
+-- [overlaps^-1 A E]
+--  A     |-----|
+--  E  |-----|
+--
 create or replace
 function is_overlaps(a timeperiod, b timeperiod)
 returns boolean language SQL IMMUTABLE 
@@ -167,9 +203,13 @@ other without regard to which.
 
 ```Sql
 << before functions >>=
--- 
--- [before] 
--- 
+--
+-- [before]
+--
+-- [before A E]
+--  A  |-----|
+--  E           |-----|
+--
 create or replace
 function is_before(a timeperiod, b timeperiod)
 returns boolean language SQL IMMUTABLE 
@@ -177,9 +217,13 @@ as $$
   select  snd(a) < fst(b);
 $$
 SET search_path = 'temporal_relationships';
--- 
+--
 -- [before^-1]
--- 
+--
+-- [before^-1 A E]
+--  A           |-----|
+--  E   |-----|
+--
 create or replace
 function is_after(a timeperiod, b timeperiod)
 returns boolean language SQL IMMUTABLE 
@@ -209,11 +253,19 @@ case of whether two time periods meet in either way.
 
 ```Sql
 << meets functions >>=
--- 
+--
 -- [meets] [meets^-1]
--- 
+--
 -- no shared time tick.
--- 
+--
+-- [meets A E]
+--  A   |-----|
+--  E         |-----|
+--
+-- [meets^-1 A E]
+--  A         |-----|
+--  E   |-----|
+--
 create or replace
 function is_meets(a timeperiod, b timeperiod)
 returns boolean language SQL IMMUTABLE 
