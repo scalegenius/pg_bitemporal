@@ -1,20 +1,23 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ExtendedDefaultRules, NoMonomorphismRestriction #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE TypeFamilies, FlexibleContexts, GADTs #-}
+{-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies  #-}
 {-# LANGUAGE TypeSynonymInstances, FlexibleInstances #-}
-
+{-# LANGUAGE DeriveDataTypeable, EmptyDataDecls ,GeneralizedNewtypeDeriving #-}
 
 -- import Prelude
-
 import Prelude as P hiding (fst, snd, lookup)
 
--- import qualified Data.Text as T
--- import qualified Data.List as L
 import           Data.Map (Map, lookup)
 import qualified Data.Map as Map
 
 -- import qualified Data.Text as T
+-- import qualified Data.Text as T
+-- import qualified Data.List as L
 -- import           Data.List (nub)
+
+import Test.QuickCheck
+
 
 
 class TimeFlow a where
@@ -24,6 +27,11 @@ class TimeFlow a where
 
 -- must support +
 type TimeResolution = Int
+
+-- incrementTime :: TimeResolution ->  -> TimePoint
+-- extendTimePoint a b = TimePoint (a + b)
+-- extendTimePoint :: (Num a) => TimeResolution -> a -> TimePoint
+-- extendTimePoint a b = TimePoint (a + b)
 
 data TimeTick = TimeTick TimeResolution 
   deriving (Show)
@@ -53,6 +61,16 @@ instance Ord TimePoint where
 instance TimeFlow TimePoint where
     timeflow (TimeTick t) (TimePoint tp) = TimePoint (subtract t tp)
     timeflow _ TimePointInfinity = TimePointInfinity 
+
+
+instance Arbitrary TimePoint where
+   arbitrary = frequency [
+      (9, do
+         b1 <- arbitrary 
+         return $ TimePoint b1
+      ),
+      (1, return TimePointInfinity)
+      ]
 
 -- | TimePeriod is a Closed-Open Range. [)
 --   
@@ -85,6 +103,8 @@ instance TimeFlow TimePeriod where
 -- data Now = Now {now :: Int, tick :: TimeTick }
 now :: TimePoint
 now = TimePoint 0
+-- If now == 0 then
+--   TimeFlow is the operation 
 
 tick :: TimeTick
 tick = TimeTick 1
@@ -92,32 +112,27 @@ tick = TimeTick 1
 ticks ::  TimeResolution -> TimeTick
 ticks n = TimeTick (fromIntegral n)
 
--- tf = mkTimeFlow tick
--- 
--- If now == 0 then
---   TimeFlow is the operation 
--- 
--- 
-instance TimeFlow [BitRecord] where
-  timeflow t records = fmap (timeflow t) records
-
 -- data BitRecord = BitRecord (TimePeriod, TimePeriod, TimePoint)
 -- instance TimeFlow BitRecord where
 --    timeflow t (BitRecord (tp1, tp2, created))=BitRecord (timeflow t tp1, timeflow t tp2, created)
-
 type BitRecord = (TimePeriod, TimePeriod, TimePoint)
 instance TimeFlow (TimePeriod, TimePeriod, TimePoint) where
     timeflow t (tp1, tp2, created)= (timeflow t tp1, timeflow t tp2, created)
 
+instance TimeFlow [BitRecord] where
+  timeflow t records = fmap (timeflow t) records
 
-mkTimePeriod :: TimeResolution -> TimeResolution ->  TimePeriod
-mkTimePeriod a b = TimePeriod (TimePoint a) (TimePoint (a+b))
+mkTimePeriod :: TimeResolution -> TimeTick ->  TimePeriod
+mkTimePeriod a (TimeTick b) = mkTimePeriod' a (a+b)
+  where
+    mkTimePeriod' :: TimeResolution -> TimeResolution ->  TimePeriod
+    mkTimePeriod' a' b' = TimePeriod (TimePoint a') (TimePoint b')
 
 mkBitRecord :: BitRecord
-mkBitRecord  = ( mkTimePeriod 10 5, mkTimePeriod 5 15, TimePoint 0 )
+mkBitRecord  = ( mkTimePeriod 10 $ ticks 5, mkTimePeriod 5 $ ticks 15, TimePoint 0 )
 
 mkBR :: TimeResolution -> TimeResolution -> TimeResolution -> TimeResolution -> BitRecord
-mkBR i iLen j jLen = ( mkTimePeriod i iLen , mkTimePeriod j jLen, TimePoint 0 )
+mkBR i iLen j jLen = ( mkTimePeriod i (ticks iLen), mkTimePeriod j (ticks jLen), TimePoint 0 )
 
 -- generateBitemporal :: Assertive -> Effective -> Now -> BitRecord
 -- generateBitemporal a e =  BitRecord (,,) (assertive a) (effecitve e)
@@ -173,14 +188,12 @@ data BitemporalOperation = Insert | UpdateEffective | UpdateAssertive
 -- Op is the Transistion between Boxes?
 -- TimeFlow is an Operation?
 -- 
-
-data Result = NoResults | OneResult | ManyResults
-
+data TemporalResult = NoResults | OneResult | ManyResults
 
 -- action operation business_data assertive_range effective_range
 --
 -- op ops -> current box -> current record _. Results(Assertive, Effective) -> Maybe a
-op :: BitemporalOperation -> (Assertive, Effective) -> a -> Maybe Result
+op :: BitemporalOperation -> (Assertive, Effective) -> a -> Maybe TemporalResult
 op UpdateEffective (Current, History) date = Nothing
 
 op UpdateEffective (Current, Updates) date = 
@@ -203,14 +216,52 @@ return (Rec d1 d2 tp)
 d1>d2
 --}
 
--- validTense :: TimePeriod -> TimePeriod -> TimePoint -> Bool
--- validTense assertive effective now  = 
-        
+-- type AllenRelationshipFunction = (t -> t -> Bool)
+
+validTense :: (TemporalRelationship t) => (t->t->Bool) -> TimePeriod -> TimePeriod -> TimePoint -> Bool
+validTense allenRelation assertive effective now  = False
 
 
+
+--instance (Arbitrary v,  DiscreteOrdered v, Show v) =>
+--   Arbitrary (TimePeriod Range v) where
+--
+--   arbitrary = frequency [
+--      (17, do  -- Ordinary range
+--         b1 <- arbitrary
+--         b2 <- arbitrary
+--         if b1 < b2
+--            then return $ Range b1 b2
+--            else return $ Range b2 b1
+--      ),
+--      (1, do  -- Singleton range
+--         v <- arbitrary
+--         return $ singletonRange v
+--    ),
+--    (1, return emptyRange),
+--    (1, return fullRange)
+--    ]
+instance  Arbitrary TimePeriod where
+    arbitrary = do
+         b1 <- arbitrary
+         b2 <- arbitrary
+         if b1 < b2
+            then return $ TimePeriod b1 b2
+            else return $ TimePeriod b2 b1
+
+test1 :: IO TimePeriod
+test1 = generate arbitrary :: IO TimePeriod
+
+main = do
+    x <- test1 
+    putStrLn "Main"
+    putStrLn $ show x
+
+--
 type OperationalTense = (TimePeriod,TimePeriod)
 
-
+--   (AllenRelations, OperationalTense)
+--   (AllenRelations, OperationalTense, NowTimePoint)
 
 
 data AllenRelations =  Equals | Before | After 
@@ -283,94 +334,101 @@ allboxes = [(Posted,History), (Posted,Updates), (Posted,Projection)
 -- is_present :: TimePeriod -> Bool 
 -- is_future :: TimePeriod -> Bool 
 
+-- -- if data structure like this
+-- data TimePeriod = TimePeriod { start_point :: TimePoint, end_point :: TimePoint}
+-- instance TemporalRelationship TimePeriod where
+--    type TemporalPoint TimePeriod = TimePoint
+--    fst = start_point
+--    snd = end_point
 
-class (Ord t) => TimePeriodClass t e where
-   fst :: t -> TimePoint
-   snd :: t -> TimePoint
-   
-instance TimePeriodClass TimePeriod where
-     fst tp = start_point tp
-     snd tp = end_point tp
+-- Example of multiparameter typeclass
+-- class ( Ord e ) => TemporalRelationship t e | t -> e where
+--       fst :: t -> e
+--       snd :: t -> e
 
-instance TemporalRelationship TimePeriod
+class ( Ord (TemporalPoint t) ) => TemporalRelationship t where
+      type TemporalPoint t
+      fst :: t -> TemporalPoint t
+      snd :: t -> TemporalPoint t
 
-class (Ord t, TimePeriodClass t) => TemporalRelationship t where
-      -- [starts] [starts^-1]
-      has_starts :: t -> t -> Bool
-      has_starts a b = (fst a)  == (fst b) && (snd a) /= (snd b)
-      -- [finishes] [finishes^-1]
-      has_finishes :: t -> t -> Bool
-      has_finishes a b = (snd a) == (snd b) && (fst a) /= (fst b)
-      -- [equals]
-      equals :: t -> t -> Bool
-      equals a  b = (fst a) == (fst b) && (snd a) == (snd b) 
-      -- [during] 
-      is_during :: t -> t -> Bool
-      is_during a b = ((fst a) > (fst b)) && ((snd a) < (snd b))
-      -- [during^-1] contained
-      is_contained_in :: t -> t -> Bool
-      is_contained_in = flip is_during
-      -- [during] or [during^-1] 
-      has_during :: t -> t -> Bool
-      has_during a b = (is_during a b) || (is_during b a)
-      -- [overlaps] 
-      is_overlaps :: t -> t -> Bool
-      is_overlaps a b = ((fst a) < (fst b) && (snd a) > (fst b) && (snd a) < (snd b))
+instance TemporalRelationship TimePeriod where
+     type TemporalPoint TimePeriod = TimePoint
+     fst (TimePeriod a _) = a 
+     snd (TimePeriod _ a) = a
 
-      -- either overlaps the other [overlaps] [overlaps^-1]
-      has_overlaps :: t -> t -> Bool
-      has_overlaps a b = (is_overlaps a b) || (is_overlaps b a)
+-- [starts] [starts^-1]
+has_starts :: (TemporalRelationship t) => t -> t -> Bool
+has_starts a b = (fst a)  == (fst b) && (snd a) /= (snd b)
+-- [finishes] [finishes^-1]
+has_finishes :: (TemporalRelationship t) => t -> t -> Bool
+has_finishes a b = (snd a) == (snd b) && (fst a) /= (fst b)
+-- [equals]
+equals :: (TemporalRelationship t) => t -> t -> Bool
+equals a  b = (fst a) == (fst b) && (snd a) == (snd b) 
+-- [during] 
+is_during :: (TemporalRelationship t) => t -> t -> Bool
+is_during a b = ((fst a) > (fst b)) && ((snd a) < (snd b))
+-- [during^-1] contained
+is_contained_in :: (TemporalRelationship t) => t -> t -> Bool
+is_contained_in = flip is_during
+-- [during] or [during^-1] 
+has_during :: (TemporalRelationship t) => t -> t -> Bool
+has_during a b = (is_during a b) || (is_during b a)
+-- [overlaps] 
+is_overlaps :: (TemporalRelationship t) => t -> t -> Bool
+is_overlaps a b = ((fst a) < (fst b) && (snd a) > (fst b) && (snd a) < (snd b))
+-- either overlaps the other [overlaps] [overlaps^-1]
+has_overlaps :: (TemporalRelationship t) => t -> t -> Bool
+has_overlaps a b = (is_overlaps a b) || (is_overlaps b a)
 
-      -- [before] 
-      is_before :: t -> t -> Bool
-      is_before a b = (snd a) < (fst b)
-      -- [before^-1]
-      is_after :: t -> t -> Bool
-      is_after a b = (snd b) < (fst a)
-      -- either [before] [before^-1]
-      has_before :: t -> t -> Bool
-      has_before a b = (snd a) < (fst b) || (snd b) < (fst a)
+-- [before] 
+is_before :: (TemporalRelationship t) => t -> t -> Bool
+is_before a b = (snd a) < (fst b)
+-- [before^-1]
+is_after :: (TemporalRelationship t) => t -> t -> Bool
+is_after a b = (snd b) < (fst a)
+-- either [before] [before^-1]
+has_before :: (TemporalRelationship t) => t -> t -> Bool
+has_before a b = (snd a) < (fst b) || (snd b) < (fst a)
+-- [meets] [meets^-1]
+is_meets :: (TemporalRelationship t) => t -> t -> Bool
+is_meets a b = (snd a) == (fst b)
+has_meets :: (TemporalRelationship t) => t -> t -> Bool
+has_meets a b = (snd a) == (fst b) || (snd b) == (fst a)
 
-      -- [meets] [meets^-1]
-      is_meets :: t -> t -> Bool
-      is_meets a b = (snd a) == (fst b)
-
-      has_meets :: t -> t -> Bool
-      has_meets a b = (snd a) == (fst b) || (snd b) == (fst a)
-
-      -- Includes is [Overlaps], [Overlaps^-1] and the Contains group.
-      -- [Includes] 
-      --     [Contains] or [Overlaps]
-      has_includes :: t -> t -> Bool
-      has_includes a b = (fst a) == (fst b) || (snd a) == (snd b) || 
+-- Includes is [Overlaps], [Overlaps^-1] and the Contains group.
+-- [Includes] 
+--     [Contains] or [Overlaps]
+has_includes :: (TemporalRelationship t) => t -> t -> Bool
+has_includes a b = (fst a) == (fst b) || (snd a) == (snd b) || 
             ((snd a) <= (snd b) && ((fst a) >= (fst b) || (fst b) < (snd a))) || 
               ((snd a) >= (snd b) && ((fst a) < (snd b) || (fst a) <= (fst b)))
 
-      -- Contains is [Equals] and Encloses group.
-      -- [Contains]
-      --    [Encloses] or [Equals]
-      has_contains :: t -> t -> Bool
-      has_contains a b = (fst a) == (fst b) || (snd a) == (snd b) || 
+-- Contains is [Equals] and Encloses group.
+-- [Contains]
+--    [Encloses] or [Equals]
+has_contains :: (TemporalRelationship t) => t -> t -> Bool
+has_contains a b = (fst a) == (fst b) || (snd a) == (snd b) || 
            ((snd a) < (snd b) && (fst a) > (fst b)) || 
              ((snd b) < (snd a) && (fst b) > (fst a))
 
-      -- AlignsWith is [Starts],[Starts^-1], [Finishes], and [Finishes^-1].
-      -- [Aligns With]
-      --   [Starts] or [Finishes]
-      has_aligns_with :: t -> t -> Bool
-      has_aligns_with a b = (xor ((fst a) == (fst b))  ((snd a) == (snd b)) )
+-- AlignsWith is [Starts],[Starts^-1], [Finishes], and [Finishes^-1].
+-- [Aligns With]
+--   [Starts] or [Finishes]
+has_aligns_with :: (TemporalRelationship t) => t -> t -> Bool
+has_aligns_with a b = (xor ((fst a) == (fst b))  ((snd a) == (snd b)) )
 
-      -- Encloses is [During], [During^-1] and the AlignsWith group.
-      -- [Encloses]
-      --   [Aligns With] or [During]
-      has_encloses :: t -> t -> Bool
-      has_encloses a b = (has_during a b) || (has_aligns_with a b)
+-- Encloses is [During], [During^-1] and the AlignsWith group.
+-- [Encloses]
+--   [Aligns With] or [During]
+has_encloses :: (TemporalRelationship t) => t -> t -> Bool
+has_encloses a b = (has_during a b) || (has_aligns_with a b)
 
-      -- Excludes is [Before], [Before^-1], [Meets], [Meets^-1].
-      -- [Excludes]
-      --   [Before] or [Meets]
-      has_excludes :: t -> t -> Bool
-      has_excludes a b = ((fst a) >= (snd b)) || ((fst b) >= (snd a))
+-- Excludes is [Before], [Before^-1], [Meets], [Meets^-1].
+-- [Excludes]
+--   [Before] or [Meets]
+has_excludes :: (TemporalRelationship t) => t -> t -> Bool
+has_excludes a b = ((fst a) >= (snd b)) || ((fst b) >= (snd a))
 
 -- | exclusive or
 xor:: Bool -> Bool -> Bool
