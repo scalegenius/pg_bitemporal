@@ -1,25 +1,35 @@
 
 BEGIN;
 set client_min_messages to warning;
-set local search_path = 'bi_temp_tables','bitemporal_internal','temporal_relationships','public';
+set local search_path = 'bi_temp_tables','bitemporal_internal','public';
 set local TimeZone  = 'UTC';
 
-SELECT plan( 11 );
+SELECT plan(22);
+
+select  unialike( current_setting('search_path'), '%temporal_relationships%'
+  ,'temporal_relationships should NOT be on search_path for these tests' );
+
+
 
 select lives_ok($$ 
     create schema bi_temp_tables 
 $$, 'create schema');
 
 select lives_ok($$
-  create table bi_temp_tables.devices (
+  create table bi_temp_tables.devices_manual (
       device_id_key serial NOT NULL
     , device_id integer
     , effective tstzrange
     , asserted tstzrange
     , device_descr text
+    , row_created_at timestamptz NOT NULL DEFAULT now()
     , CONSTRAINT devices_device_id_asserted_effective_excl EXCLUDE 
       USING gist (device_id WITH =, asserted WITH &&, effective WITH &&)
   ) 
+$$, 'create devices manual');
+
+select lives_ok($$select * from bitemporal_internal.ll_create_bitemporal_table('bi_temp_tables','devices', 
+'device_id integer, device_descr text', 'device_id') 
 $$, 'create devices');
 
 select lives_ok($$
@@ -27,15 +37,7 @@ insert into  bi_temp_tables.devices( device_id , effective, asserted, device_des
 values 
  (1, '[01-01-2015, infinity)', '[01-01-2015, infinity)','descr2')
 ,(5, '[2015-12-01 00:00:00-06,2015-12-31 00:00:00+00)', '[2015-12-01 00:00:00-06,2015-12-31 00:00:00+00)', 'test_5')
-$$, 'insert data nto devices');
-
-/* ,(1, '[01-01-2015, infinity)', '[01-01-2015, infinity)','descr2')
-,(1, '[01-01-2015, infinity)', '[01-01-2015, infinity)','descr2')
-,(1, '[01-01-2015, infinity)', '[01-01-2015, infinity)','descr2')
-,(1, '[01-01-2015, infinity)', '[01-01-2015, infinity)','descr2')
-,(1, '[01-01-2015, infinity)', '[01-01-2015, infinity)','descr2');
-*/
-
+$$, 'insert data into devices');
 
 ---non-temp for test
 
@@ -58,6 +60,9 @@ select is( ll_is_bitemporal_table('bi_temp_tables.devices_temp'), false
 select is( ll_is_bitemporal_table('bi_temp_tables.devices')
     , true  , 'is bitemporal table? devices');
 
+select is( ll_is_bitemporal_table('bi_temp_tables.devices_manual')
+    , true  , 'is bitemporal table? devices_manual');
+
 select is( ll_is_bitemporal_table('bi_temp_tables.devices_non_temp')
     , false , 'is bitemporal table? devices_non_temp');
 
@@ -65,27 +70,27 @@ select is( ll_is_bitemporal_table('bi_temp_tables.dev')
     , false , 'is bitemporal table? dev');
 
 ----test insert:
-select lives_ok($q$
+ select results_eq ($q$
   select bitemporal_internal.ll_bitemporal_insert('bi_temp_tables.devices',
   'device_id , device_descr', $$'11', 'new_descr'$$, '[01-01-2016, infinity)', '[01-02-2016, infinity)' )
-$q$
+$q$, 
+$v$ values(1) $v$
 ,'bitemporal insert'
 );
 
 -- select * from bi_temp_tables.devices ;
 
-select results_eq($q$ 
-  select device_id,effective::text,asserted::text,device_descr
-        from bi_temp_tables.devices where device_id = 11
-$q$
+select results_eq($q$ select device_id, device_descr, effective, asserted
+from bi_temp_tables.devices where device_id =11 $q$
 , $v$
 values 
 ( 11
-  ,'["2016-01-01 00:00:00+00",infinity)'
-  ,'["2016-01-02 00:00:00+00",infinity)'
-  ,'new_descr'::text)
+,'new_descr'::text
+  ,'["2016-01-01 00:00:00+00",infinity)'::temporal_relationships.timeperiod
+  ,'["2016-01-02 00:00:00+00",infinity)'::temporal_relationships.timeperiod
+)
 $v$ 
-,'select after bitemporal insert'
+,'bitemporal insert, returns select '
 );
 
 
@@ -102,36 +107,44 @@ $v$
 ,'list of fields'
 );
 
-/*
 ---test correction
 
-begin
 
-select * from bitemporal_internal.ll_bitemporal_insert('bi_temp_tables.devices',
-'device_id ,
-device_descr',
-$$'11', 'new_descr'$$,
-'[01-01-2016, infinity)',
-'[01-02-2016, infinity)' );
-
-
-select * from bitemporal_internal.ll_bitemporal_correction('bi_temp_tables.devices',
+select results_eq($q$select * from bitemporal_internal.ll_bitemporal_correction('bi_temp_tables.devices',
 'device_descr',
 $$'updated_descr_11'$$,
 'device_id' , 
 '11',
-'[01-01-2016, infinity)' );
+'[01-01-2016, infinity)' )$q$, 
+$v$ values(1) $v$
+,'bitemporal correction'
+);
 
-select * from bi_temp_tables.devices;
-rollback;
+select results_eq($q$ 
+  select device_descr
+        from bi_temp_tables.devices where device_id = 11 and upper(asserted)='infinity' and effective='[01-01-2016, infinity)'
+$q$
+, $v$
+values 
+('updated_descr_11'::text)
+$v$ 
+,'select after bitemporal correction - old'
+);
 
----output:
+select results_eq($q$ 
+  select device_descr
+        from bi_temp_tables.devices where device_id = 11 and lower(asserted)='2016-01-02'
+         and effective='[01-01-2016, infinity)'
+$q$
+, $v$
+values 
+('new_descr'::text)
+$v$ 
+,'select after bitemporal correction - new'
+);
 
-23;11;"["2016-01-01 00:00:00-06",infinity)";"["2016-01-02 00:00:00-06","2016-01-02 17:31:05.157147-06")";"new_descr"
-24;11;"["2016-01-01 00:00:00-06",infinity)";"["2016-01-02 17:31:05.157147-06",infinity)";"updated_descr_11"
-
-
----test update:
+---test update with error:
+/*
 
 select * from bitemporal_internal.ll_bitemporal_update('bi_temp_tables.devices'
 ,'device_descr'
@@ -146,62 +159,67 @@ select * from bitemporal_internal.ll_bitemporal_update('bi_temp_tables.devices'
 
 ERROR:  Asserted interval starts in the past or has a finite end: ["2016-01-02 00:00:00-06",infinity)
 
+Exactly the same test should be performed for inactivate
+*/
+
+/* should probably include the test of bitemporal_internal.ll_check_bitemporal_update_conditions - if it returns zero,
+then 
+
+ERROR:  Nothing to update, use INSERT or check effective: ["2015-01-02 00:00:00-06","2015-02-02")
+
+Exactly the same test should be performed for inactivate
+
+
+*/
+
+
 ---correct test:
 
-select * from bitemporal_internal.ll_bitemporal_update('bi_temp_tables.devices'
+select results_eq($q$ 
+select *  from bitemporal_internal.ll_bitemporal_update('bi_temp_tables.devices'
 ,'device_descr'
 ,$$'descr starting from jan 1'$$ 
 ,'device_id'  
-,$$8$$  
+,$$1$$  
 ,'[2016-01-01, infinity)'
-, '[2016-01-03, infinity)') 
-;
-select * from bi_temp_tables.devices order by 2,1
-
----output
-
-11;8;"["2015-12-01 00:00:00-06","2016-01-01 00:00:00-06")";"["2015-12-15 00:00:00-06","2016-01-03 00:00:00-06")";"descr8"
-52;8;"["2015-12-01 00:00:00-06","2016-01-01 00:00:00-06")";"["2016-01-03 00:00:00-06",infinity)";"descr8"
-53;8;"["2016-01-01 00:00:00-06",infinity)";"["2016-01-03 00:00:00-06",infinity)";"'descr starting from jan 1'"
-
+, '[3016-03-01, infinity)') $q$, 
+$v$ values(1) $v$
+,'bitemporal update - correct'
+);
 
 ----inactivate
 
-select * from bitemporal_internal.ll_bitemporal_inactivate('bi_temp_tables.devices'
+select results_eq($q$select * from bitemporal_internal.ll_bitemporal_inactivate('bi_temp_tables.devices'
 ,'device_id'  
-,$$8$$  
-,'[2016-01-31, infinity)'
-, '[2016-01-03 21:30, infinity)') 
-;select * from bi_temp_tables.devices order by 2,1
+,$$11$$  
+,'[3016-03-15, infinity)'
+, '[3016-02-02, infinity)')  $q$, 
+$v$ values(1) $v$
+,'bitemporal inactivate - correct'
+);
 
 
-
----output
-
-
-11;8;"["2015-12-01 00:00:00-06","2016-01-01 00:00:00-06")";"["2015-12-15 00:00:00-06","2016-01-03 00:00:00-06")";"descr8"
-49;8;"["2015-12-01 00:00:00-06","2016-01-01 00:00:00-06")";"["2016-01-03 00:00:00-06",infinity)";"descr8"
-50;8;"["2016-01-01 00:00:00-06",infinity)";"["2016-01-03 00:00:00-06","2016-01-03 21:30:00-06")";"'descr starting from jan 1'"
-51;8;"["2016-01-01 00:00:00-06","2016-01-31 00:00:00-06")";"["2016-01-03 21:30:00-06",infinity)";"'descr starting from jan 1'"
-
+select results_eq($q$select count(*)::integer from bi_temp_tables.devices 
+where device_id=11 
+and  '[3016-03-16,  3016-03-16]'<@ effective 
+and '[3016-02-04, 3016-02-04]' <@ asserted $q$, 
+$v$ values(0::integer) $v$,'bitemporal inactivate no active rows');
 
 
 ---delete:
 
-select * from bitemporal_internal.ll_bitemporal_delete('bi_temp_tables.devices'
+select results_eq($q$select * from bitemporal_internal.ll_bitemporal_delete('bi_temp_tables.devices'
 ,'device_id'  
-,$$8$$  
-, '[2016-01-04 21:30, infinity)') 
-;
+,$$1$$  
+, '[3016-04-04 21:30, infinity)')  $q$, 
+$v$ values(2) $v$
+,'bitemporal delete');
 
----output:
-
-11;8;"["2015-12-01 00:00:00-06","2016-01-01 00:00:00-06")";"["2015-12-15 00:00:00-06","2016-01-03 00:00:00-06")";"descr8"
-57;8;"["2015-12-01 00:00:00-06","2016-01-01 00:00:00-06")";"["2016-01-03 00:00:00-06","2016-01-04 21:30:00-06")";"descr8"
-58;8;"["2016-01-01 00:00:00-06",infinity)";"["2016-01-03 00:00:00-06","2016-01-03 21:30:00-06")";"'descr starting from jan 1'"
-59;8;"["2016-01-01 00:00:00-06","2016-01-31 00:00:00-06")";"["2016-01-03 21:30:00-06","2016-01-04 21:30:00-06")";"'descr starting from jan 1'"
-
-*/
+select results_eq($q$select count(*)::integer from bi_temp_tables.devices 
+where device_id=1 
+and '[3016-04-05, 3016-04-05]' <@ asserted $q$, 
+$v$ values(0::integer) $v$
+,'bitemporal delete no active rows');
 
 SELECT * FROM finish();
 ROLLBACK;

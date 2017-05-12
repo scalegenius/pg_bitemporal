@@ -6,11 +6,7 @@ APP_ROOT=`dirname $BUILD`
 export PGOPTIONS="--client-min-messages=warning"
 
 PSQL_CMD="psql -q -P pager=off "
-
-PSQL="$PSQL_CMD -v VERBOSITY=terse "
-if (( $DEBUG )); then 
-  PSQL="$PSQL_CMD -v ON_ERROR_STOP=on"
-fi 
+PSQL="$PSQL_CMD -v VERBOSITY=terse -v ON_ERROR_STOP=on"
 
 D=${APP_ROOT}/sql
 
