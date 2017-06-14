@@ -181,7 +181,7 @@ select *  from bitemporal_internal.ll_bitemporal_update('bi_temp_tables.devices'
 ,$$'descr starting from jan 1'$$ 
 ,'device_id'  
 ,$$1$$  
-,'[2016-01-01, infinity)'
+,'[2018-01-01, infinity)'
 , '[3016-03-01, infinity)') $q$, 
 $v$ values(1) $v$
 ,'bitemporal update - correct'
