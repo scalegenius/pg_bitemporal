@@ -4,7 +4,7 @@ set client_min_messages to warning;
 set local search_path = 'bi_temp_tables','bitemporal_internal','public';
 set local TimeZone  = 'UTC';
 
-SELECT plan(21);
+SELECT plan(22);
 
 select  unialike( current_setting('search_path'), '%temporal_relationships%'
   ,'temporal_relationships should NOT be on search_path for these tests' );
@@ -188,11 +188,11 @@ $v$ values(1) $v$
 );
 
 ----inactivate
-/*
+
 select results_eq($q$select * from bitemporal_internal.ll_bitemporal_inactivate('bi_temp_tables.devices'
 ,'device_id'  
 ,$$11$$  
-,'[3016-03-15, infinity)'
+,'[3016-02-02, infinity)'
 , '[3016-02-02, infinity)')  $q$, 
 $v$ values(1) $v$
 ,'bitemporal inactivate - correct'
@@ -204,7 +204,7 @@ where device_id=11
 and  '[3016-03-16,  3016-03-16]'<@ effective 
 and '[3016-02-04, 3016-02-04]' <@ asserted $q$, 
 $v$ values(0::integer) $v$,'bitemporal inactivate no active rows');
-*/
+
 
 ---delete:
 

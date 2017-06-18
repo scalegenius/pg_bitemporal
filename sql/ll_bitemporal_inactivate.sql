@@ -1,4 +1,4 @@
-CREATE OR REPLACE FUNCTION bitemporal_internal.ll_bitemporal_inactivate(p_table text
+ CREATE OR REPLACE FUNCTION bitemporal_internal.ll_bitemporal_inactivate(p_table text
 , p_search_fields TEXT  -- search fields
 , p_search_values TEXT  --  search values
 , p_effective temporal_relationships.timeperiod -- inactive starting
@@ -8,6 +8,7 @@ RETURNS INTEGER
 AS
 $BODY$
 DECLARE
+v_sql text ;
 v_rowcount INTEGER:=0;
 v_list_of_fields_to_insert text:=' ';
 v_list_of_fields_to_insert_excl_effective text;
@@ -39,21 +40,27 @@ v_list_of_fields_to_insert:= v_list_of_fields_to_insert_excl_effective||',effect
 
 --end assertion period for the old record(s)
 
-EXECUTE format($u$ UPDATE %s SET asserted =
+EXECUTE
+ format($u$ UPDATE %s SET asserted =
             temporal_relationships.timeperiod(lower(asserted), lower(%L::temporal_relationships.timeperiod))
                     WHERE ( %s )=( %s ) AND (temporal_relationships.is_overlaps(effective, %L)
                                        OR 
                                        temporal_relationships.is_meets(effective, %L)
                                        OR 
                                        temporal_relationships.has_finishes(effective, %L))
-                                       AND now()<@ asserted  $u$  
+                                      AND ---now()<@ asserted  
+                                       (temporal_relationships.is_overlaps(asserted, %L) 
+                                       OR 
+                                       temporal_relationships.has_finishes(asserted, %L))$u$  
           , p_table
           , p_asserted
           , p_search_fields
           , p_search_values
           , p_effective
           , p_effective
-          , p_effective);
+          , p_effective
+          , p_asserted
+          ,p_asserted);
           
  --insert new assertion range with old values and effective-ended
  
