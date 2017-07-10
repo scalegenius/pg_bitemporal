@@ -4,7 +4,7 @@ set client_min_messages to warning;
 set local search_path = 'bi_temp_tables','bitemporal_internal','public';
 set local TimeZone  = 'UTC';
 
-SELECT plan(22);
+SELECT plan(23);
 
 select  unialike( current_setting('search_path'), '%temporal_relationships%'
   ,'temporal_relationships should NOT be on search_path for these tests' );
@@ -142,6 +142,30 @@ values
 $v$ 
 ,'select after bitemporal correction - new'
 );
+
+select results_eq ($q$
+select bitemporal_internal.ll_bitemporal_insert('bi_temp_tables.devices',
+  'device_id , device_descr', $$'10', 'descr_crean_insert'$$, '[01-01-2017, infinity)', '[2017-07-09 21:59:58.993815-05, infinity)' )
+$q$, 
+$v$ values(1) $v$
+,'bitemporal insert for correction'
+);
+select * from bitemporal_internal.ll_bitemporal_correction('bi_temp_tables.devices',
+'device_descr',
+$$'descr_10_corr_on_place'$$,
+'device_id' , 
+'10',
+'[01-01-2017, infinity)' , '2017-07-09 21:59:58.993815-05'
+)
+
+select * from bitemporal_internal.ll_bitemporal_correction('bi_temp_tables.devices',
+'device_descr',
+$$'descr_10_corr_with_new-record'$$,
+'device_id' , 
+'10',
+'[01-01-2017, infinity)' , '2017-07-09 22:10:58.993815-05'
+)       
+
 
 ---test update with error:
 /*
