@@ -181,7 +181,7 @@ $$'descr_10_corr_with_new-record'$$,
 'device_id' , 
 '10',
 '[01-01-2017, infinity)' , '2017-07-09 22:10:58.993815-05'
-) )$q$, 
+ )$q$, 
 $v$ values(1) $v$
 ,'bitemporal correction new record'
 );      
