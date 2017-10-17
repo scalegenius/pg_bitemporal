@@ -13,7 +13,7 @@ D=${APP_ROOT}/sql
 # infra setup
 if [ "${CI:-nil}" != "nil" ] ; then
    echo "CI Infrastructure setup"
-  $PSQL -f ${APP_ROOT}/dummy_fdw/dummy_data--1.0.sql
+#  $PSQL -f ${APP_ROOT}/dummy_fdw/dummy_data--1.0.sql
 fi
 echo "_load_all.sql"
 echo "\\set CI $CI %\\ir $D/_load_all.sql" |tr '%' '\n' | $PSQL

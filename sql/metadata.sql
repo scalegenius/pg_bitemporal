@@ -52,14 +52,24 @@ language sql IMMUTABLE as $f$
 $f$
 SET search_path = 'bitemporal_internal';
 
+create or replace
+function bitemporal_internal.fk_constraint(src_column text, fk_table text, fk_column text, connname text)
+returns text
+language sql IMMUTABLE
+as $ff$
+  select mk_constraint('fk'
+             , connname
+             , format('%s -> %s(%s)', src_column, fk_table, fk_column) );
+$ff$
+SET search_path = 'bitemporal_internal';
+
 create or replace 
 function bitemporal_internal.fk_constraint(src_column text, fk_table text, fk_column text)
 returns text
 language sql IMMUTABLE
 as $ff$ 
-  select mk_constraint('fk'
-             , mk_conname('fk', src_column, fk_table, fk_column)
-             , format('%s -> %s(%s)', src_column, fk_table, fk_column) );
+  select fk_constraint(src_column , fk_table , fk_column,
+          mk_conname('fk', src_column, fk_table, fk_column));
 $ff$
 SET search_path = 'bitemporal_internal';
 

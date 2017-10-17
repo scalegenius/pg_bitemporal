@@ -72,8 +72,8 @@ dependencies:
 
 ## we automatically cache and restore many dependencies between
 ## builds. If you need to, you can add custom paths to cache:
-  cache_directories:
-    - "dummy_fdw"
+#  cache_directories:
+#    - "dummy_fdw"
 
 ## Customize database setup
 database:

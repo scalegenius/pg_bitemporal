@@ -11,6 +11,6 @@
 # If it is not tests get weird, hard to understand  errors.
 perl -MTAP::Parser::SourceHandler::pgTAP -e 'print;'
 
-echo "Installing dummy_data FDW"
-[ ! -d dummy_fdw ] && git clone https://github.com/slaught/dummy_fdw.git
-(cd dummy_fdw; make clobber; make)
+#echo "Installing dummy_data FDW"
+#[ ! -d dummy_fdw ] && git clone https://github.com/slaught/dummy_fdw.git
+#(cd dummy_fdw; make clobber; make)
