@@ -32,7 +32,7 @@ v_list_of_fields_to_insert:= v_list_of_fields_to_insert_excl_effective||',effect
 
 --end assertion period for the old record(s)
 
-EXECUTE format($u$ UPDATE %s SET asserted =
+EXECUTE format($u$ UPDATE %s t    SET asserted =
             temporal_relationships.timeperiod(lower(asserted), lower(%L::temporal_relationships.timeperiod))
                     WHERE ( %s )in( %s ) AND (temporal_relationships.is_overlaps(effective, %L)
                                        OR 
@@ -98,7 +98,7 @@ EXECUTE format($i$INSERT INTO %s ( %s, effective, asserted )
 
 --update new record(s) in new assertion rage with new values                                  
                                   
-EXECUTE format($u$ UPDATE %s SET (%s) = (%s) 
+EXECUTE format($u$ UPDATE %s t SET (%s) = (%s) 
                     WHERE ( %s ) in ( %s ) AND effective=%L
                                         AND asserted=%L $u$  
           , p_table
