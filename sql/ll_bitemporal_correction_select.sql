@@ -40,7 +40,8 @@ BEGIN
  EXECUTE 
 -- v_sql:=
  format($i$INSERT INTO %s ( %s, effective, asserted )
-                SELECT %s ,effective, temporal_relationships.timeperiod_range(upper(asserted), 'infinity', '[)')
+                SELECT %s ,effective, temporal_relationships.timeperiod_range(now(),
+                 'infinity', '[)')
                   FROM %s WHERE  %s  AND %L::timestamptz <@ effective
                           AND upper(asserted)= %L 
                                  $i$  --insert new assertion rage with old values where applicable 
