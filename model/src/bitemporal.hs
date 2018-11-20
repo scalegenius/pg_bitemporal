@@ -337,7 +337,10 @@ type OperationalTense = (TimePeriod,TimePeriod)
 --   (AllenRelations, OperationalTense, NowTimePoint)
 
 instance Sql OperationalTense where
-    toSQL (a,b)= "insert into (" ++ (toSQL a) ++ ", " ++ (toSQL b) ++ ");"
+    toSQL (a,b)= "(" ++ (toSQL a) ++ ", " ++ (toSQL b) ++ ")"
+
+instance Sql [OperationalTense] where
+    toSQL lst = "VALUES " ++ (L.intercalate "," $ fmap toSQL lst) ++ ";"
 
 genTimePeriod :: IO TimePeriod
 genTimePeriod = generate arbitrary :: IO TimePeriod
@@ -399,7 +402,7 @@ main = do
     test1
     putStrLn $ "Generate All Possible Paths"
     putStrLn $ show aa
-    putStrLn $ concat (fmap toSQL aa)
+    putStrLn $ show $ toSQL aa
     
 --    z <- generate infiniteList :: IO [OperationalTense]
 --    aa <- generate genMeets
@@ -435,18 +438,8 @@ mkBR i iLen j jLen = ( mkTimePeriod i (ticks iLen), mkTimePeriod j (ticks jLen),
 -- generateBitemporal a e =  BitRecord (,,) (assertive a) (effecitve e)
 
 -- type AllenRelationshipFunction = (t -> t -> Bool)
-validTense :: (TemporalRelationship t) => (t->t->Bool)->TimePeriod->TimePeriod->TimePoint->Bool
-validTense _allenRelation _assertive _effective _now  = False
-
-{--
-d1 <- choose (0,300)
-d2 <- choose (0,300)
-tp <- choose (0,300)
-guard (validAllenRelation d1 d2 tp) 
-return (Rec d1 d2 tp)
-d1>d2
---}
-
+-- validTense :: (TemporalRelationship t) => (t->t->Bool)->TimePeriod->TimePeriod->TimePoint->Bool
+-- validTense _allenRelation _assertive _effective _now  = False
 
 instance Arbitrary AllenRelations where
     arbitrary = elements  [ Equals, Before, After,
@@ -579,14 +572,25 @@ xxxx=   [(Equals,3),(Before,5),(After,5)
 
 -- class (Assertive a, Effective e) => Ops a e where
 
+-- Insert          == BiemporalInsert
 -- UpdateEffective == BitemporalUpdate
 -- UpdateAssertive == BitemporalCorrection
 -- DeleteEffective == BitemporalInactive
--- DeleteAssertive == Bitemporal
+-- DeleteAssertive == Bitemporal Delete
 -- DeletePhysical == SQL delete
--- Insert          == BiemporalInsert
-data BitemporalOperation = Insert | UpdateEffective | UpdateAssertive
-                     | DeleteEffective | DeleteAssertive | DeletePhysical
+
+data BitemporalOperation = UpdateEffective | Insert
+
+data TemporalStateTransformations a = Create | Erase | Modify a -- | PhysicalRemove
+    deriving (Show, Eq)
+
+data TST_Modify a = Merge | Split | Shorten a | Lengthen a
+    deriving (Show, Eq)
+
+data TST_Direction = Backwards | Forwards
+    deriving (Show, Eq)
+
+
 -- 
 -- Op is the Transistion between Boxes?
 -- TimeFlow is an Operation?
