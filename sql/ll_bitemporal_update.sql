@@ -229,8 +229,8 @@ into v_keys;
                                   
 EXECUTE 
 --v_sql :=
-format($u$ UPDATE %s SET (%s) = (%s) 
-                    WHERE ( %s )in (SELECT %s ) $u$  
+format($u$ UPDATE %s SET (%s) = ( SELECT %s) 
+                    WHERE ( %s )in ( %s ) $u$  
           , v_table
           , p_list_of_fields
           , p_list_of_values
