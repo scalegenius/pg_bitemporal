@@ -106,7 +106,7 @@ EXECUTE format($i$INSERT INTO %s ( %s, effective, asserted )
 
 --update new record(s) in new assertion rage with new values                                  
                                   
-EXECUTE format($u$ UPDATE %s SET (%s) = (%s) 
+EXECUTE format($u$ UPDATE %s SET (%s) = (SELECT %s) 
                     WHERE ( %s )=( %s ) AND effective=%L
                                         AND asserted=%L $u$  
           , p_table
