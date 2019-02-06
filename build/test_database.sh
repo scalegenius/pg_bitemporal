@@ -1,15 +1,11 @@
 #!/bin/bash
-export CI=${CI:-true}
-export CIRCLECI=${CIRCLECI:-true}
-export CIRCLE_ARTIFACTS=${CIRCLE_ARTIFACTS:-./tmp}
 
-BUILD=`dirname $0`
-APP_ROOT=`dirname $BUILD`
+source  `dirname $0`/environment.sh
+
+export CI=${CI:-true}
+
 D=${APP_ROOT}/sql
 
-export PGOPTIONS="--client-min-messages=warning"
-PSQL_CMD="psql -q -P pager=off "
-PSQL="$PSQL_CMD -X -v VERBOSITY=terse -v ON_ERROR_STOP=on "
 
 ${BUILD}/pg_prove --ext .pg --ext .sql ${APP_ROOT}/tests/
 PGTAP_TEST=$?
