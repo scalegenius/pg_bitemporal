@@ -4,7 +4,7 @@ set client_min_messages to warning;
 set local search_path = 'bi_temp_tables','bitemporal_internal','public';
 set local TimeZone  = 'UTC';
 
-SELECT plan(22);
+SELECT plan(27);
 
 select  unialike( current_setting('search_path'), '%temporal_relationships%'
   ,'temporal_relationships should NOT be on search_path for these tests' );
@@ -107,6 +107,23 @@ $v$
 ,'list of fields'
 );
 
+
+
+---correct test:
+
+select results_eq($q$ 
+select *  from bitemporal_internal.ll_bitemporal_update('bi_temp_tables','devices'
+,'device_descr'
+,$$'descr starting from jan 1'$$ 
+,'device_id'  
+,$$1$$  
+,'[2018-01-01, infinity)'
+, '[3016-03-01, infinity)') $q$, 
+$v$ values(1) $v$
+,'bitemporal update - correct'
+);
+
+
 ---test correction
 
 
@@ -143,6 +160,60 @@ $v$
 ,'select after bitemporal correction - new'
 );
 
+select results_eq ($q$
+select bitemporal_internal.ll_bitemporal_insert('bi_temp_tables.devices',
+  'device_id , device_descr', $$'10', 'descr_crean_insert'$$, '[01-01-2017, infinity)', '[2017-07-09 21:59:58.993815-05, infinity)' )
+$q$, 
+$v$ values(1) $v$
+,'bitemporal insert for correction'
+);
+
+select results_eq($q$select * from bitemporal_internal.ll_bitemporal_correction('bi_temp_tables.devices',
+'device_descr',
+$$'descr_10_corr_on_place'$$,
+'device_id' , 
+'10',
+'[01-01-2017, infinity)' , '2017-07-09 21:59:58.993815-05'
+)$q$, 
+$v$ values(1) $v$
+,'bitemporal correction on place'
+);
+
+select results_eq($q$ 
+  select device_descr
+        from bi_temp_tables.devices where device_id = 10 
+         and effective='[01-01-2017, infinity)'
+$q$
+, $v$
+values 
+('descr_10_corr_on_place'::text)
+$v$ 
+,'select after bitemporal correction on place'
+);
+
+
+select results_eq($q$select * from bitemporal_internal.ll_bitemporal_correction('bi_temp_tables.devices',
+'device_descr',
+$$'descr_10_corr_with_new-record'$$,
+'device_id' , 
+'10',
+'[01-01-2017, infinity)' , '2017-07-09 22:10:58.993815-05'
+ )$q$, 
+$v$ values(1) $v$
+,'bitemporal correction new record'
+);      
+
+select results_eq($q$ 
+  select device_descr
+        from bi_temp_tables.devices where device_id = 10 
+         and effective='[01-01-2017, infinity)' and upper(asserted)='infinity'
+$q$
+, $v$
+values 
+('descr_10_corr_with_new-record'::text)
+$v$ 
+,'select after bitemporal correction new record'
+);
 ---test update with error:
 /*
 
@@ -173,26 +244,10 @@ Exactly the same test should be performed for inactivate
 */
 
 
----correct test:
-
-select results_eq($q$ 
-select *  from bitemporal_internal.ll_bitemporal_update('bi_temp_tables.devices'
-,'device_descr'
-,$$'descr starting from jan 1'$$ 
-,'device_id'  
-,$$1$$  
-,'[2016-01-01, infinity)'
-, '[3016-03-01, infinity)') $q$, 
-$v$ values(1) $v$
-,'bitemporal update - correct'
-);
-
-----inactivate
-
 select results_eq($q$select * from bitemporal_internal.ll_bitemporal_inactivate('bi_temp_tables.devices'
 ,'device_id'  
 ,$$11$$  
-,'[3016-03-15, infinity)'
+,'[3016-02-02, infinity)'
 , '[3016-02-02, infinity)')  $q$, 
 $v$ values(1) $v$
 ,'bitemporal inactivate - correct'

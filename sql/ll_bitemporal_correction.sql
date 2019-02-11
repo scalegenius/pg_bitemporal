@@ -9,6 +9,7 @@ CREATE OR REPLACE FUNCTION bitemporal_internal.ll_bitemporal_correction(
   RETURNS integer AS
 $BODY$
 DECLARE
+v_sql  text;
   v_rowcount INTEGER:=0;
   v_list_of_fields_to_insert text;
   v_table_attr text[];
@@ -22,19 +23,27 @@ BEGIN
 
  v_list_of_fields_to_insert:= array_to_string(v_table_attr, ',','');
 
- EXECUTE format($u$ UPDATE %s SET asserted = temporal_relationships.timeperiod_range(lower(asserted), %L, '[)')
+ EXECUTE 
+ --v_sql:=
+ format($u$ UPDATE %s SET asserted = temporal_relationships.timeperiod_range(lower(asserted), %L, '[)')
                     WHERE ( %s )=( %s ) AND effective = %L
-                          AND upper(asserted)='infinity' $u$  --end assertion period for the old record(s)
+                          AND upper(asserted)='infinity' 
+                          AnD lower(asserted)<%L$u$  --end assertion period for the old record(s), if any
           , p_table
           , v_now
           , p_search_fields
           , p_search_values
-          , p_effective);
+          , p_effective
+          , v_now);
+ --       raise notice 'sql%', v_sql;  
 
- EXECUTE format($i$INSERT INTO %s ( %s, effective, asserted )
+ EXECUTE 
+-- v_sql:=
+ format($i$INSERT INTO %s ( %s, effective, asserted )
                 SELECT %s ,effective, temporal_relationships.timeperiod_range(upper(asserted), 'infinity', '[)')
                   FROM %s WHERE ( %s )=( %s ) AND effective = %L
-                          AND upper(asserted)= %L $i$  --insert new assertion rage with old values 
+                          AND upper(asserted)= %L 
+                                 $i$  --insert new assertion rage with old values where applicable 
           , p_table
           , v_list_of_fields_to_insert
           , v_list_of_fields_to_insert
@@ -44,8 +53,11 @@ BEGIN
           , p_effective
           , v_now
 );
+--raise notice 'sql%', v_sql;  
 
-    EXECUTE format($uu$UPDATE %s SET ( %s ) = ( %s ) WHERE ( %s ) = ( %s )
+ EXECUTE 
+-- v_sql:=   
+ format($uu$UPDATE %s SET ( %s ) = ( %s ) WHERE ( %s ) = ( %s )
                            AND effective = %L
                            AND upper(asserted)='infinity'
                            RETURNING * $uu$  --update new assertion rage with new values
@@ -56,12 +68,14 @@ BEGIN
           , p_search_values
           , p_effective
      ) ;
+   --  raise notice 'sql%', v_sql;  
  GET DIAGNOSTICS v_rowcount:=ROW_COUNT; 
  RETURN v_rowcount;
 END;
 $BODY$
   LANGUAGE plpgsql VOLATILE;
-  
+/* for compatibility with the previous version - now =now()
+adding one more line */  
   CREATE OR REPLACE FUNCTION bitemporal_internal.ll_bitemporal_correction(
     p_table text,
     p_list_of_fields text,

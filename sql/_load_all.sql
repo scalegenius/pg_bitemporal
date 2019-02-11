@@ -24,7 +24,9 @@ set search_path to bitemporal_internal, public;
 \ir ll_bitemporal_delete.sql
 \ir ll_bitemporal_inactivate.sql
 \ir ll_bitemporal_insert.sql
+\ir ll_bitemporal_insert_select.sql
 \ir ll_bitemporal_update.sql
+\ir ll_bitemporal_update_select.sql
 
 commit;
 

@@ -12,6 +12,7 @@ RETURN ( array(SELECT attname
                                 AND attname !='asserted'
                                 AND attname !='effective'
                                 AND attname !='row_created_at'
+                                and attname not like '%dropped%'
                         ORDER BY pa.attnum));
 END;                        
 $BODY$ LANGUAGE plpgsql;
