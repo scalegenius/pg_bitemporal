@@ -251,7 +251,7 @@ select results_eq($q$select * from bitemporal_internal.ll_bitemporal_inactivate(
 ,'device_id'  
 ,$$11$$  
 ,'[3016-02-02, infinity)'
-, '[3016-02-02, infinity)')  $q$, 
+, '[3016-03-01, infinity)')  $q$, 
 $v$ values(1) $v$
 ,'bitemporal inactivate - correct'
 );
