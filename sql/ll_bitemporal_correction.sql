@@ -188,7 +188,7 @@ $BODY$
   LANGUAGE plpgsql VOLATILE; 
   
  CREATE OR REPLACE FUNCTION bitemporal_internal.ll_bitemporal_correction(p_schema_name text,
-    p_table _name text,
+    p_table_name text,
     p_list_of_fields text,
     p_list_of_values text,
     p_search_fields text,
