@@ -133,7 +133,7 @@ $$'updated_descr_11'$$,
 'device_id' , 
 '11',
 '[01-01-2016, infinity)' ,
-now())$q$, 
+ '3016-03-01'::timestamptz)$q$, 
 $v$ values(1) $v$
 ,'bitemporal correction'
 );

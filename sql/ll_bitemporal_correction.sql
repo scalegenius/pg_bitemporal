@@ -76,7 +76,8 @@ $BODY$
   LANGUAGE plpgsql VOLATILE;
 /* for compatibility with the previous version - now =now()
 adding one more line */  
-  CREATE OR REPLACE FUNCTION bitemporal_internal.ll_bitemporal_correction(
+  
+ CREATE OR REPLACE FUNCTION bitemporal_internal.ll_bitemporal_correction(
     p_table text,
     p_list_of_fields text,
     p_list_of_values text,
@@ -100,7 +101,7 @@ adding one more line */
 $BODY$
   LANGUAGE plpgsql VOLATILE;
   
-  CREATE OR REPLACE FUNCTION bitemporal_internal.l_bitemporal_correction(p_schema_name text,
+ CREATE OR REPLACE FUNCTION bitemporal_internal.l_bitemporal_correction(p_schema_name text,
     p_table_name text,
     p_list_of_fields text,
     p_list_of_values text,
