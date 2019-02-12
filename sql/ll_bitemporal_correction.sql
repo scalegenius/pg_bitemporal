@@ -186,6 +186,31 @@ into v_keys;
 END;
 $BODY$
   LANGUAGE plpgsql VOLATILE; 
+  
+ CREATE OR REPLACE FUNCTION bitemporal_internal.ll_bitemporal_correction(p_schema_name text,
+    p_table _name text,
+    p_list_of_fields text,
+    p_list_of_values text,
+    p_search_fields text,
+    p_search_values text,
+    p_effective temporal_relationships.timeperiod)
+  RETURNS integer AS
+  $BODY$
+  declare v_rowcount int;
+  begin
+   select * into v_rowcount from  bitemporal_internal.ll_bitemporal_correction(p_schema_name ,
+    p_table_name ,
+    p_list_of_fields ,
+    p_list_of_values ,
+    p_search_fields ,
+    p_search_values,
+    p_effective ,
+    clock_timestamp() );
+    return v_rowcount;
+    END;
+$BODY$
+  LANGUAGE plpgsql VOLATILE;
+  
 
 
 

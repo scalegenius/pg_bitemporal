@@ -171,7 +171,7 @@ $v$ values(1) $v$
 ,'bitemporal insert for correction'
 );
 
-select results_eq($q$select * from bitemporal_internal.ll_bitemporal_correction('bi_temp_tables.devices',
+select results_eq($q$select * from bitemporal_internal.ll_bitemporal_correction('bi_temp_tables','devices',
 'device_descr',
 $$'descr_10_corr_on_place'$$,
 'device_id' , 
@@ -195,7 +195,7 @@ $v$
 );
 
 
-select results_eq($q$select * from bitemporal_internal.ll_bitemporal_correction('bi_temp_tables.devices',
+select results_eq($q$select * from bitemporal_internal.ll_bitemporal_correction('bi_temp_tables','devices',
 'device_descr',
 $$'descr_10_corr_with_new-record'$$,
 'device_id' , 
