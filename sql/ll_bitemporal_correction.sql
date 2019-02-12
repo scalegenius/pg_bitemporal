@@ -210,8 +210,3 @@ $BODY$
     END;
 $BODY$
   LANGUAGE plpgsql VOLATILE;
-  
-
-
-
-  
