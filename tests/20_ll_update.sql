@@ -93,37 +93,6 @@ $v$
 ,'bitemporal insert, returns select '
 );
 
-
-select results_eq($q$ 
-    select * from 
-  bitemporal_internal.ll_bitemporal_list_of_fields('bi_temp_tables.devices')
-$q$
-, $v$
-values 
-( 
-ARRAY['device_id','device_descr']
-)
-$v$ 
-,'list of fields'
-);
-
-
-
----correct test:
-
-select results_eq($q$ 
-select *  from bitemporal_internal.ll_bitemporal_update('bi_temp_tables','devices'
-,'device_descr'
-,$$'descr starting from jan 1'$$ 
-,'device_id'  
-,$$1$$  
-,'[2018-01-01, infinity)'
-, '[3016-03-01, infinity)') $q$, 
-$v$ values(1) $v$
-,'bitemporal update - correct'
-);
-
-
 ---test correction
 
 
@@ -160,6 +129,39 @@ values
 $v$ 
 ,'select after bitemporal correction - new'
 );
+
+
+
+select results_eq($q$ 
+    select * from 
+  bitemporal_internal.ll_bitemporal_list_of_fields('bi_temp_tables.devices')
+$q$
+, $v$
+values 
+( 
+ARRAY['device_id','device_descr']
+)
+$v$ 
+,'list of fields'
+);
+
+
+
+---correct test:
+
+select results_eq($q$ 
+select *  from bitemporal_internal.ll_bitemporal_update('bi_temp_tables','devices'
+,'device_descr'
+,$$'descr starting from jan 1'$$ 
+,'device_id'  
+,$$1$$  
+,'[2018-01-01, infinity)'
+, '[3016-01-01, infinity)') $q$, 
+$v$ values(1) $v$
+,'bitemporal update - correct'
+);
+
+
 
 select results_eq ($q$
 select bitemporal_internal.ll_bitemporal_insert('bi_temp_tables.devices',
