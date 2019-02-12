@@ -149,9 +149,9 @@ BEGIN
           , v_serial_key
           , v_serial_key) into v_keys_old;
           
-   if  array_to_string(v_keys_old,',') =''  then return 0; end if;
+   if  array_to_string(v_keys_old,',') in ('', ' ')  then return 0; end if;
           
- --       raise notice 'sql%', v_sql;  
+     raise notice 'v_keys|%|end', array_to_string(v_keys_old,',');  
 
  EXECUTE 
 -- v_sql:=
