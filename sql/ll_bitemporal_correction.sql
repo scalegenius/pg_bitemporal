@@ -129,7 +129,6 @@ BEGIN
  END IF;
 
  v_list_of_fields_to_insert:= array_to_string(v_table_attr, ',','');
-
  EXECUTE 
  --v_sql:=
  format($u$ WITH updt AS (UPDATE %s SET asserted = temporal_relationships.timeperiod_range(lower(asserted), %L, '[)')
@@ -148,10 +147,12 @@ BEGIN
           , v_now
           , v_serial_key
           , v_serial_key) into v_keys_old;
+ 
+--  raise notice 'v_keys|%|end', array_to_string(v_keys_old,',');       
+   if  --array_to_string(v_keys_old,',') in ('', ' ') or 
+   array_to_string(v_keys_old,',') is null then return 0; end if;
           
-   if  array_to_string(v_keys_old,',') in ('', ' ')  then return 0; end if;
-          
-     raise notice 'v_keys|%|end', array_to_string(v_keys_old,',');  
+     
 
  EXECUTE 
 -- v_sql:=
@@ -184,11 +185,13 @@ into v_keys;
           
    --  raise notice 'sql%', v_sql;  
  GET DIAGNOSTICS v_rowcount:=ROW_COUNT; 
+
  RETURN v_rowcount;
 END;
 $BODY$
   LANGUAGE plpgsql VOLATILE; 
   
+ 
  CREATE OR REPLACE FUNCTION bitemporal_internal.ll_bitemporal_correction(p_schema_name text,
     p_table_name text,
     p_list_of_fields text,
