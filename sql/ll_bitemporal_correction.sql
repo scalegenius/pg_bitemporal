@@ -119,7 +119,6 @@ v_sql  text;
   v_now temporal_relationships.time_endpoint:=p_now ;-- for compatiability with the previous version
   v_serial_key text:=p_table_name||'_key';
   v_table text:=p_schema_name||'.'||p_table_name;
-  v_keys_old int[];
   v_keys int[];
 BEGIN
  v_table_attr := bitemporal_internal.ll_bitemporal_list_of_fields(v_table);
@@ -130,46 +129,38 @@ BEGIN
 
  v_list_of_fields_to_insert:= array_to_string(v_table_attr, ',','');
  EXECUTE 
- --v_sql:=
- format($u$ WITH updt AS (UPDATE %s SET asserted = temporal_relationships.timeperiod_range(lower(asserted), %L, '[)')
+ format($u$ UPDATE %s SET asserted = temporal_relationships.timeperiod_range(lower(asserted), %L, '[)')
                     WHERE ( %s )=( %s ) AND effective = %L
                           AND upper(asserted)='infinity' 
-                          AND lower(asserted)<%L  returning %s )
-                                      SELECT array_agg(%s) FROM updt
-                                      $u$  
-                          
-                          --end assertion period for the old record(s), if any
+                          AnD lower(asserted)<%L$u$  --end assertion period for the old record(s), if any
           , v_table
           , v_now
           , p_search_fields
           , p_search_values
           , p_effective
-          , v_now
-          , v_serial_key
-          , v_serial_key) into v_keys_old;
- 
---  raise notice 'v_keys|%|end', array_to_string(v_keys_old,',');       
-   if  --array_to_string(v_keys_old,',') in ('', ' ') or 
-   array_to_string(v_keys_old,',') is null then return 0; end if;
-          
-     
+          , v_now);
+ --       raise notice 'sql%', v_sql;  
 
  EXECUTE 
 -- v_sql:=
  format($i$WITH inst AS (INSERT INTO %s ( %s, effective, asserted )
                 SELECT %s ,effective, temporal_relationships.timeperiod_range(upper(asserted), 'infinity', '[)')
-                  FROM %s WHERE ( %s )IN ( %s ) returning %s )
+                  FROM %s WHERE ( %s )=( %s ) AND effective = %L
+                          AND upper(asserted)= %L 
+                                returning %s )
                                     SELECT array_agg(%s) FROM inst $i$  --insert new assertion rage with old values where applicable 
           , v_table
           , v_list_of_fields_to_insert
           , v_list_of_fields_to_insert
-          , v_table 
-          , v_serial_key
-          ,array_to_string(v_keys_old,',')
+          , v_table
+          , p_search_fields
+          , p_search_values
+          , p_effective
+          , v_now
           ,v_serial_key
           ,v_serial_key
-          )
-into v_keys;
+)into v_keys;
+--raise notice 'sql%', v_sql;  
 
 --raise notice 'sql%', v_sql;  
 
@@ -181,7 +172,7 @@ into v_keys;
           , p_list_of_fields
           , p_list_of_values
           , v_serial_key
-          ,array_to_string(v_keys,','));
+          ,coalesce(array_to_string(v_keys,','), 'NULL'));
           
    --  raise notice 'sql%', v_sql;  
  GET DIAGNOSTICS v_rowcount:=ROW_COUNT; 
