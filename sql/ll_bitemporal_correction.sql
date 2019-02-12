@@ -148,6 +148,7 @@ BEGIN
           , v_now
           , v_serial_key
           , v_serial_key) into v_keys_old;
+   if array_length(v_key_old,1) =0 then return 0; end if;
           
  --       raise notice 'sql%', v_sql;  
 
