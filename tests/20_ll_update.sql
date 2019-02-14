@@ -258,8 +258,8 @@ $v$ values(1) $v$
 
 select results_eq($q$select count(*)::integer from bi_temp_tables.devices 
 where device_id=11 
-and  '[3016-03-16,  3016-03-16]'<@ effective 
-and '[3016-02-04, 3016-02-04]' <@ asserted $q$, 
+and  '[3016-03-16,  3016-03-16]'<@ asserted
+and '[3016-02-04, 3016-02-04]' <@ effective $q$, 
 $v$ values(0::integer) $v$,'bitemporal inactivate no active rows');
 
 
