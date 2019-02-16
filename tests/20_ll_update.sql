@@ -93,46 +93,15 @@ $v$
 ,'bitemporal insert, returns select '
 );
 
-
-select results_eq($q$ 
-    select * from 
-  bitemporal_internal.ll_bitemporal_list_of_fields('bi_temp_tables.devices')
-$q$
-, $v$
-values 
-( 
-ARRAY['device_id','device_descr']
-)
-$v$ 
-,'list of fields'
-);
-
-
-
----correct test:
-
-select results_eq($q$ 
-select *  from bitemporal_internal.ll_bitemporal_update('bi_temp_tables','devices'
-,'device_descr'
-,$$'descr starting from jan 1'$$ 
-,'device_id'  
-,$$1$$  
-,'[2018-01-01, infinity)'
-, '[3016-03-01, infinity)') $q$, 
-$v$ values(1) $v$
-,'bitemporal update - correct'
-);
-
-
 ---test correction
 
 
-select results_eq($q$select * from bitemporal_internal.ll_bitemporal_correction('bi_temp_tables.devices',
+select results_eq($q$select * from bitemporal_internal.ll_bitemporal_correction('bi_temp_tables','devices',
 'device_descr',
 $$'updated_descr_11'$$,
 'device_id' , 
 '11',
-'[01-01-2016, infinity)' )$q$, 
+'[01-01-2016, infinity)' ::temporal_relationships.timeperiod)$q$, 
 $v$ values(1) $v$
 ,'bitemporal correction'
 );
@@ -160,20 +129,53 @@ $v$
 ,'select after bitemporal correction - new'
 );
 
+
+
+select results_eq($q$ 
+    select * from 
+  bitemporal_internal.ll_bitemporal_list_of_fields('bi_temp_tables.devices')
+$q$
+, $v$
+values 
+( 
+ARRAY['device_id','device_descr']
+)
+$v$ 
+,'list of fields'
+);
+
+
+
+---correct test:
+
+select results_eq($q$ 
+select *  from bitemporal_internal.ll_bitemporal_update('bi_temp_tables','devices'
+,'device_descr'
+,$$'descr starting from jan 1'$$ 
+,'device_id'  
+,$$1$$  
+,'[2018-01-01, infinity)'
+, '[3016-01-01, infinity)') $q$, 
+$v$ values(1) $v$
+,'bitemporal update - correct'
+);
+
+
+
 select results_eq ($q$
 select bitemporal_internal.ll_bitemporal_insert('bi_temp_tables.devices',
-  'device_id , device_descr', $$'10', 'descr_crean_insert'$$, '[01-01-2017, infinity)', '[2017-07-09 21:59:58.993815-05, infinity)' )
+  'device_id , device_descr', $$'10', 'descr_crean_insert'$$, '[01-01-2017, infinity)', '[3017-07-09 21:59:58.993815-05, infinity)' )
 $q$, 
 $v$ values(1) $v$
 ,'bitemporal insert for correction'
 );
 
-select results_eq($q$select * from bitemporal_internal.ll_bitemporal_correction('bi_temp_tables.devices',
+select results_eq($q$select * from bitemporal_internal.ll_bitemporal_correction('bi_temp_tables','devices',
 'device_descr',
 $$'descr_10_corr_on_place'$$,
 'device_id' , 
 '10',
-'[01-01-2017, infinity)' , '2017-07-09 21:59:58.993815-05'
+'[01-01-2017, infinity)'::temporal_relationships.timeperiod , '3017-07-09 21:59:58.993815-05'
 )$q$, 
 $v$ values(1) $v$
 ,'bitemporal correction on place'
@@ -192,12 +194,12 @@ $v$
 );
 
 
-select results_eq($q$select * from bitemporal_internal.ll_bitemporal_correction('bi_temp_tables.devices',
+select results_eq($q$select * from bitemporal_internal.ll_bitemporal_correction('bi_temp_tables','devices',
 'device_descr',
 $$'descr_10_corr_with_new-record'$$,
 'device_id' , 
 '10',
-'[01-01-2017, infinity)' , '2017-07-09 22:10:58.993815-05'
+'[01-01-2017, infinity)' ::temporal_relationships.timeperiod, '3017-07-09 22:10:58.993815-05'
  )$q$, 
 $v$ values(1) $v$
 ,'bitemporal correction new record'
@@ -248,7 +250,7 @@ select results_eq($q$select * from bitemporal_internal.ll_bitemporal_inactivate(
 ,'device_id'  
 ,$$11$$  
 ,'[3016-02-02, infinity)'
-, '[3016-02-02, infinity)')  $q$, 
+, '[3016-03-01, infinity)')  $q$, 
 $v$ values(1) $v$
 ,'bitemporal inactivate - correct'
 );
@@ -256,8 +258,8 @@ $v$ values(1) $v$
 
 select results_eq($q$select count(*)::integer from bi_temp_tables.devices 
 where device_id=11 
-and  '[3016-03-16,  3016-03-16]'<@ effective 
-and '[3016-02-04, 3016-02-04]' <@ asserted $q$, 
+and  '[3016-03-16,  3016-03-16]'<@ asserted
+and '[3016-02-04, 3016-02-04]' <@ effective $q$, 
 $v$ values(0::integer) $v$,'bitemporal inactivate no active rows');
 
 
