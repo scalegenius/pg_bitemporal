@@ -150,14 +150,7 @@ BEGIN
  THEN RAISE EXCEPTION'Asserted interval starts in the past or has a finite end: %', p_asserted
   ; 
   RETURN v_rowcount;
- END IF;
- IF (bitemporal_internal.ll_check_bitemporal_update_conditions(v_table 
-                                                       ,p_search_fields 
-                                                       ,p_search_values
-                                                       ,p_effective)  =0 )
- THEN RAISE EXCEPTION'Nothing to update, use INSERT or check effective: %', p_effective; 
-  RETURN v_rowcount;
- END IF;   
+ END IF;  
 
 v_table_attr := bitemporal_internal.ll_bitemporal_list_of_fields(v_table);
 IF  array_length(v_table_attr,1)=0
@@ -200,7 +193,8 @@ EXECUTE format($i$INSERT INTO %s ( %s, effective, asserted )
           , p_asserted
           , v_table
           , v_serial_key
-          ,array_to_string(v_keys_old,',')
+          ,coalesce(array_to_string(v_keys_old,','), 'NULL')
+         
 );
 
 
@@ -219,7 +213,7 @@ EXECUTE format($i$INSERT INTO %s ( %s, effective, asserted )
           , p_asserted
           , v_table
           , v_serial_key
-          , array_to_string(v_keys_old,',')
+          , coalesce(array_to_string(v_keys_old,','), 'NULL')
           , v_serial_key
           , v_serial_key
 ) 
@@ -235,7 +229,7 @@ format($u$ UPDATE %s SET (%s) = ( SELECT %s)
           , p_list_of_fields
           , p_list_of_values
           , v_serial_key
-          ,array_to_string(v_keys,','));
+          ,coalesce(array_to_string(v_keys,','), 'NULL'));
           
 GET DIAGNOSTICS v_rowcount:=ROW_COUNT;  
 
