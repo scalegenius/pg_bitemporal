@@ -214,13 +214,16 @@ into v_keys;
 --update new record(s) in new assertion rage with new values  
                            
                                   
-EXECUTE format($u$ UPDATE %s t SET (%s) = (%s) 
+EXECUTE format($u$ UPDATE %s t SET (%s) = (SELECT %s) 
                     WHERE ( %s ) in ( %s ) $u$  
           , v_table
           , p_list_of_fields
           , p_values_selected_update
           , v_serial_key
           , array_to_string(v_keys,',')); 
+          
+          
+          
           
 GET DIAGNOSTICS v_rowcount:=ROW_COUNT;  
 RETURN v_rowcount;
