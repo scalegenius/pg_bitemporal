@@ -214,7 +214,7 @@ into v_keys;
 --update new record(s) in new assertion rage with new values  
                            
                                   
-EXECUTE format($u$ UPDATE %s t SET (%s) = (SELECT %s) 
+EXECUTE format($u$ UPDATE %s t SET (%s) = (%s) 
                     WHERE ( %s ) in ( %s ) $u$  
           , v_table
           , p_list_of_fields
