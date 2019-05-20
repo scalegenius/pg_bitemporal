@@ -1,7 +1,7 @@
 
 ## pg_bitemporal
 
-Bitemporal Table support in Postgresql 9.4.
+Bitemporal Table support in Postgresql 9.4 - 10.0
 
 
 
@@ -54,12 +54,14 @@ Bitemporal Table support in Postgresql 9.4.
 
 
 * Temporal Primary Key is the primary key of a temporal table. It is
-  usually a natural key plus the effective and asserted time periods.
+  usually a natural key plus the effective and asserted time periods. In our 
+  implementation we reference this natural key as a business key. In addition a
+  surrogate key may be created.
 
 
 * Temporal Referential Integrity is a standard referential integrity 
-  constraint with a time dimensions. For example a foreign key RI between
-  two bitemporal tables.
+  constraint with a time dimensions. 
+  
   Temporal referential integrity is the constraint that the bitemporal 
   extent of every row about a thing is [contained in] the bitemporal 
   extent of a set of one or more rows has an existence dependency.
