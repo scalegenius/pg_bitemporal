@@ -10,7 +10,7 @@ p_schema - the name of the schema for which we want to generate it's bitemporal 
 
 output:
 
-DDL for new schema creation (does not for provide data conversion)
+DDL for new schema creation (does not provide data conversion
 
 #ll_create_bitemporal_table - creates bitemporal table
 
@@ -21,7 +21,8 @@ bitemporal_internal.ll_create_bitemporal_table(
     p_business_key text)
   RETURNS boolean 
   
- Input:
+ input:
+
   
     p_schema - the name of the schema where we want to create a bitemporal table
     p_table - the name of the table
@@ -204,9 +205,7 @@ select * from  bitemporal_internal.ll_bitemporal_update('bitemp_tables'
 ,'[2020-01-01, infinity)'
 , [now(), infinity)') 
 
-
 Update future effective period future assertion
-
 
 select * from  bitemporal_internal.ll_bitemporal_update('bitemp_tables'
 ,'devices',
@@ -217,4 +216,4 @@ select * from  bitemporal_internal.ll_bitemporal_update('bitemp_tables'
 ,'[2019-10-31, infinity)'
 , [2019-10-30, infinity)') 
 
-#ll_bitemporal_update_select allow
+
