@@ -160,10 +160,9 @@ RETURNS INTEGER
 bitemporal_internal.ll_bitemporal_update(
 p_schema_name text
 p_table text
-,p_list_of_fields text -- fields to update
-,p_list_of_values TEXT  -- values to update with
-,p_search_fields TEXT  -- search fields
-,p_search_values TEXT  --  search values
+,p_list_of_fields text 
+,p_list_of_values TEXT 
+,p_search_fields TEXT 
 ,p_effective temporal_relationships.timeperiod  
 ,p_asserted temporal_relationships.timeperiod  
 ) 
@@ -187,12 +186,12 @@ p_list_of_fields  - a character string, containing the list of columns which wil
 be updated, separated by commas
 p_list_of_values  -  a list of updated values, separated by commas. 
 p_search_fields - the list of fields used in the WHERE clause
-p_search_values TEXT - the list of values for the search fields
+p_search_values  - the list of values for the search fields
 p_effective - effective range of the update
 p_asserted - assertion for the update
 
 
-Example:
+Example 1:
 
 Update future effective period asserted immediately.
 
@@ -205,6 +204,8 @@ select * from  bitemporal_internal.ll_bitemporal_update('bitemp_tables'
 ,'[2020-01-01, infinity)'
 , [now(), infinity)') 
 
+Example 2:
+
 Update future effective period future assertion
 
 select * from  bitemporal_internal.ll_bitemporal_update('bitemp_tables'
@@ -216,4 +217,224 @@ select * from  bitemporal_internal.ll_bitemporal_update('bitemp_tables'
 ,'[2019-10-31, infinity)'
 , [2019-10-30, infinity)') 
 
+#ll_bitemporal_update_select - performs bitemporal update, where both updated values and records to be updated are pre-selected, rather than explicitly set up. It is an equvalent of regilar UPDATE, when you use it in the following form:
+
+UPDATE T1 set (a1, a2) = (SELECT v1, v2 FROM T2 WHERE   )
+		WHERE  T1.a3 IN (SELECT   )
+		                                         ) 
+Same as simple update, this function also has two signatures:
+
+bitemporal_internal.ll_bitemporal_update_select(
+p_table text
+,p_list_of_fields text 
+,p_values_selected_update TEXT 
+,p_search_fields TEXT  -- search fields
+,p_values_selected_search TEXT  
+,p_effective temporal_relationships.timeperiod  
+,p_asserted temporal_relationships.timeperiod  
+) 
+RETURNS INTEGER
+
+bitemporal_internal.ll_bitemporal_update_select(p_schema_name text,
+ p_table_name  text
+,p_list_of_fields text -- fields to update
+,p_values_selected_update TEXT  -- values to update with
+,p_search_fields TEXT  -- search fields
+,p_values_selected_search TEXT  --  search values selected
+,p_effective temporal_relationships.timeperiod  -- effective range of the update
+,p_asserted temporal_relationships.timeperiod  -- assertion for the update
+) 
+RETURNS INTEGER
+
+
+Same warnings/recommendations are applicable for two versions of UPDATE_SELECT, as for simple UPDATE, however UPDATE_SELECT allows more complex search croteria.
+
+
+Input:
+
+p_schema_name - the name of the schema 
+p_table_name  - bitemporal table name 
+p_table  - the table name, including the schema name (for older version only)
+p_list_of_fields  - a character string, containing the list of columns which will 
+be updated, separated by commas
+p_values_selected_update  - the text of select statement, which is used for update 
+p_search_fields -- the list of fields used in the WHERE clause, separated by commas,p_values_selected_search --  mas
+p_values_selected_search  - the text of select statement, which is used to obtain updated values                                                   
+p_effective   -- effective range of the update
+p_asserted - assertion for the update
+
+
+Example 1:
+
+select * from  bitemporal_internal.ll_bitemporal_update_select('bitemp_tables'
+,'devices',
+,'device_descr'
+,$$select device_descr from r                                                                                                                                        egular_tables.new_devices d
+   where device_id=t.device_id$$ 
+,'device_id'  
+,$$select device_id from regular_tables.new_devices$$ 
+,temporal_relationships.timeperiod(now(), infinity),
+, temporal_relationships.timeperiod(now(), infinity) 
+
+#bitemporal correction
+
+There are four different bitemporal correction functions, which correctpond to the four bitemporal update functions described earlier, but instead of executing bitemporal update, they execute bitemporal correction. Please refer to the Bitemporal presentation in the same directory for more explanation how these two are different. Most of the time application developers need only bitemporal update.
+
+Bitemporal correction functions:
+
+bitemporal_internal.ll_bitemporal_correction(
+    p_table text,
+    p_list_of_fields text,
+    p_list_of_values text,
+    p_search_fields text,
+    p_search_values text,
+    p_effective temporal_relationships.timeperiod,
+    p_now temporal_relationships.time_endpoint )
+  RETURNS INTEGER
+ 
+    
+ bitemporal_internal.ll_bitemporal_correction(p_schema_name text,
+    p_table_name text,
+    p_list_of_fields text,
+    p_list_of_values text,
+    p_search_fields text,
+    p_search_values text,
+    p_effective temporal_relationships.timeperiod,
+    p_now temporal_relationships.time_endpoint )
+  RETURNS integer    
+    
+bitemporal_internal.ll_bitemporal_correction_select(
+    p_table text,
+    p_list_of_fields text,
+    p_values_selected_update text,
+    p_where text,  
+    p_effective_at time_endpoint ,
+    p_now time_endpoint)
+  RETURNS integer    
+    
+ itemporal_internal.ll_bitemporal_correction_select(
+    p_schema_name text,
+    p_table_name text,
+    p_list_of_fields text,
+    p_values_selected_update text,
+    p_where text,  
+    p_effective_at time_endpoint ,
+    p_now time_endpoint)
+  RETURNS integer    
+  
+ 
+ Input:
+
+p_schema_name - the name of the schema 
+p_table_name  - bitemporal table name 
+p_table  - the table name, including the schema name (for older version only)
+p_list_of_fields  - a character string, containing the list of columns which will 
+be updated, separated by commas
+p_list_of_values  -  a list of updated values, separated by commas. 
+p_values_selected_update  - the text of select statement, which is used for correction 
+p_search_fields -- the list of fields used in the WHERE clause, separated by commas
+p_search_values  - the list of values for the search fields
+p_where parameter is used to pass the whole WHERE clause, combining together p_search_fields and p_values_selected_search from the ll_bitemporal_update_select. 
+p_effective   -- effective range which is being corrected 
+p_now assertion start time for correction
+
+
+Output:
+
+# of records corrected
+
+Example:
+
+select * from bitemporal_internal.ll_bitemporal_correction('bi_temp_tables',
+'devices',
+'device_descr',
+$$'updated_descr_11'$$,
+'device_id' , 
+'11',
+'[01-01-2016, infinity)' ::temporal_relationships.timeperiod);
+
+
+
+
+#ll_bitemporal_inactivate  - performs bitemporal inactivate operation. The selected record(s) will be modified so that there won't be any currently effective record(s), but this status will be still currently asserted. In other words, we can "see" the record(s) as being currently not effective
+
+bitemporal_internal.ll_bitemporal_inactivate(p_table text
+, p_search_fields TEXT 
+, p_search_values TEXT  
+, p_effective temporal_relationships.timeperiod -- inactive starting
+, p_asserted temporal_relationships.timeperiod -- will be asserted
+)
+RETURNS INTEGER
+
+
+
+Input:
+p_table_name  - bitemporal table name (including schema)
+p_search_fields -- the list of fields used in the WHERE clause, separated by commas
+p_search_values  - the list of values for the search fields
+ p_effective temporal_relationships.timeperiod -- inactive starting (only lower(effective)  is used)
+, p_asserted temporal_relationships.timeperiod -- inactiveness will be asserted 
+
+Output:
+
+number of inactivated records
+
+
+NOTE: this function  has only ONE signature (we might add more for consistency later)
+
+
+
+#ll_bitemporal_delete - performs bitemporal delete (ends assertion interval for selected records, making them 'invisible')
+
+
+
+bitemporal_internal.ll_bitemporal_delete(p_table 
+, p_search_fields TEXT 
+, p_search_values TEXT  
+, p_asserted temporal_relationships.timeperiod 
+)
+RETURNS INTEGER
+
+Input:
+
+p_table_name  - bitemporal table name (including schema)
+p_search_fields -- the list of fields used in the WHERE clause, separated by commas
+p_search_values  - the list of values for the search fields
+,p_asserted temporal_relationships.timeperiod - lower(asserted) will be the end of assertion
+
+
+Output:
+
+# of deleted records
+
+NOTE: this function does not have a PG 10 compatiable version yet, please use delete_select, while we are working on the new version)
+
+Example:
+
+select * from bitemporal_internal.ll_bitemporal_delete('bi_temp_tables.devices'
+,'device_id'  
+ ,$$1$$  
+,'[3016-04-04 21:30, infinity)')  - deleteion with future assertion
+
+#ll_bitemporal_delete_select - bitemporarily delete (end assertion) for the records, which are selected using p_values_selected_search 
+
+bitemporal_internal.ll_bitemporal_delete_select(
+	p_table text,
+	p_search_fields text,
+	p_values_selected_search text,
+	p_asserted temporal_relationships.timeperiod)
+    RETURNS integer
+    
+    
+ Input:
+    
+ p_table_name  - bitemporal table name (including schema)
+ p_search_fields -- the list of fields used in the WHERE clause, separated by commas
+ p_values_selected_search - the text of select statement, which is used to identify records to be deleted
+ p_asserted temporal_relationships.timeperiod - lower(asserted) will be the end of assertion
+ 
+ Output:
+ 
+ * of records deleted
+  
 
