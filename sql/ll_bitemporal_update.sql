@@ -203,7 +203,7 @@ EXECUTE format($i$INSERT INTO %s ( %s, effective, asserted )
  EXECUTE 
   format($i$ WITH inst AS (INSERT INTO %s ( %s, effective, asserted )
                   SELECT %s ,%L, %L
-                   FROM %s WHERE ( %s )=( %s )  returning %s )
+                   FROM %s WHERE ( %s )in (%s )  returning %s )
                                     SELECT array_agg(%s) FROM inst
                                       $i$
           , v_table
