@@ -20,7 +20,7 @@ fi
 LOAD_PGTAP=0
 if  [ "${CI:-nil}" != "nil" ] ; then
   echo "Load pgtap"
-  echo "\\ir ${BUILD}/pgtap.sql %\\ir ${BUILD}/pgtap_ft.sql" |tr '%' '\n' | $PSQL
+  echo "\\ir ${BUILD}/pgtap.sql %" |tr '%' '\n' | $PSQL
   LOAD_PGTAP=$?
 fi
 
