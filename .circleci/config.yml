@@ -69,6 +69,29 @@ jobs:
         - run:
             name: test database
             command: ./build/test_database.sh
+   "test-pg12":
+      docker:
+        - image: slaught/docker-buildbox:postgres-client
+          environment:
+            POSTGRES_PASSWORD: f0285cb79f623675a3df3fe88a014d80a7276e55
+            POSTGRES_VERSION:  12
+            PGHOST: pg12
+        - image: library/postgres:12-alpine
+          name: pg12
+          environment:
+            PGDATA: /dev/shm/pgdata/data
+            POSTGRES_PASSWORD: f0285cb79f623675a3df3fe88a014d80a7276e55
+      steps:
+        - checkout
+        - run:
+            name: dependencies
+            command: ./build/dependencies.sh
+        - run:
+            name: load database
+            command: ./build/load_database.sh
+        - run:
+            name: test database
+            command: ./build/test_database.sh
 workflows:
   version: 2
   build:
@@ -76,4 +99,5 @@ workflows:
       - "test-pg96"
       - "test-pg10"
       - "test-pg11"
+      - "test-pg12"
 
