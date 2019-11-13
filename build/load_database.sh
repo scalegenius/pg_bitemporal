@@ -20,7 +20,12 @@ fi
 LOAD_PGTAP=0
 if  [ "${CI:-nil}" != "nil" ] ; then
   echo "Load pgtap"
-  echo "\\ir ${BUILD}/pgtap.sql %" |tr '%' '\n' | $PSQL
+  if [ "${POSTGRES_VERSION-nil}" = "9.6" ]; then
+      echo "Using Postgresql 9.6"
+      echo "\\ir ${BUILD}/pgtap_96.sql %" |tr '%' '\n' | $PSQL
+  else
+      echo "\\ir ${BUILD}/pgtap.sql %" |tr '%' '\n' | $PSQL
+  fi
   LOAD_PGTAP=$?
 fi
 
