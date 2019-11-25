@@ -25,8 +25,8 @@ EXECUTE format($create$
 CREATE TABLE %s.%s (
                  %s
                  ,%s
-                 ,effective temporal_relationships.timeperiod
-                 ,asserted temporal_relationships.timeperiod
+                 ,effective temporal_relationships.timeperiod NOT NULL
+                 ,asserted temporal_relationships.timeperiod  NOT NULL
                  ,row_created_at timestamptz NOT NULL DEFAULT now()
                  ,CONSTRAINT %s PRIMARY KEY (%s)
                  ,CONSTRAINT %s EXCLUDE 
