@@ -180,13 +180,14 @@ RETURNS INTEGER AS $$
     SELECT _get('failed');
 $$ LANGUAGE SQL strict;
 
-CREATE OR REPLACE FUNCTION _finish (INTEGER, INTEGER, INTEGER)
+CREATE OR REPLACE FUNCTION _finish (INTEGER, INTEGER, INTEGER, BOOLEAN DEFAULT NULL)
 RETURNS SETOF TEXT AS $$
 DECLARE
     curr_test ALIAS FOR $1;
     exp_tests INTEGER := $2;
     num_faild ALIAS FOR $3;
     plural    CHAR;
+    raise_ex  ALIAS FOR $4;
 BEGIN
     plural    := CASE exp_tests WHEN 1 THEN '' ELSE 's' END;
 
@@ -206,6 +207,9 @@ BEGIN
             plural || ' but ran ' || curr_test
         );
     ELSIF num_faild > 0 THEN
+        IF raise_ex THEN
+            RAISE EXCEPTION  '% test% failed of %', num_faild, CASE num_faild WHEN 1 THEN '' ELSE 's' END, exp_tests;
+        END IF;
         RETURN NEXT diag(
             'Looks like you failed ' || num_faild || ' test' ||
             CASE num_faild WHEN 1 THEN '' ELSE 's' END
@@ -218,12 +222,13 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE OR REPLACE FUNCTION finish ()
+CREATE OR REPLACE FUNCTION finish (exception_on_failure BOOLEAN DEFAULT NULL)
 RETURNS SETOF TEXT AS $$
     SELECT * FROM _finish(
         _get('curr_test'),
         _get('plan'),
-        num_failed()
+        num_failed(),
+        $1
     );
 $$ LANGUAGE sql;
 
@@ -1298,10 +1303,17 @@ $$ LANGUAGE SQL;
 -- _col_is_null( schema, table, column, desc, null )
 CREATE OR REPLACE FUNCTION _col_is_null ( NAME, NAME, NAME, TEXT, bool )
 RETURNS TEXT AS $$
+DECLARE
+    qcol CONSTANT text := quote_ident($1) || '.' || quote_ident($2) || '.' || quote_ident($3);
+    c_desc CONSTANT text := coalesce(
+        $4,
+        'Column ' || qcol || ' should '
+            || CASE WHEN $5 THEN 'be NOT' ELSE 'allow' END || ' NULL'
+    );
 BEGIN
     IF NOT _cexists( $1, $2, $3 ) THEN
-        RETURN fail( $4 ) || E'\n'
-            || diag ('    Column ' || quote_ident($1) || '.' || quote_ident($2) || '.' || quote_ident($3) || ' does not exist' );
+        RETURN fail( c_desc ) || E'\n'
+            || diag ('    Column ' || qcol || ' does not exist' );
     END IF;
     RETURN ok(
         EXISTS(
@@ -1315,7 +1327,7 @@ BEGIN
                AND NOT a.attisdropped
                AND a.attname    = $3
                AND a.attnotnull = $5
-        ), $4
+        ), c_desc
     );
 END;
 $$ LANGUAGE plpgsql;
@@ -1323,10 +1335,17 @@ $$ LANGUAGE plpgsql;
 -- _col_is_null( table, column, desc, null )
 CREATE OR REPLACE FUNCTION _col_is_null ( NAME, NAME, TEXT, bool )
 RETURNS TEXT AS $$
+DECLARE
+    qcol CONSTANT text := quote_ident($1) || '.' || quote_ident($2);
+    c_desc CONSTANT text := coalesce(
+        $3,
+        'Column ' || qcol || ' should '
+            || CASE WHEN $4 THEN 'be NOT' ELSE 'allow' END || ' NULL'
+    );
 BEGIN
     IF NOT _cexists( $1, $2 ) THEN
-        RETURN fail( $3 ) || E'\n'
-            || diag ('    Column ' || quote_ident($1) || '.' || quote_ident($2) || ' does not exist' );
+        RETURN fail( c_desc ) || E'\n'
+            || diag ('    Column ' || qcol || ' does not exist' );
     END IF;
     RETURN ok(
         EXISTS(
@@ -1339,46 +1358,43 @@ BEGIN
                AND NOT a.attisdropped
                AND a.attname    = $2
                AND a.attnotnull = $4
-        ), $3
+        ), c_desc
     );
 END;
 $$ LANGUAGE plpgsql;
 
 -- col_not_null( schema, table, column, description )
-CREATE OR REPLACE FUNCTION col_not_null ( NAME, NAME, NAME, TEXT )
-RETURNS TEXT AS $$
+-- col_not_null( schema, table, column )
+CREATE OR REPLACE FUNCTION col_not_null (
+    schema_name NAME, table_name NAME, column_name NAME, description TEXT DEFAULT NULL
+) RETURNS TEXT AS $$
     SELECT _col_is_null( $1, $2, $3, $4, true );
 $$ LANGUAGE SQL;
 
 -- col_not_null( table, column, description )
-CREATE OR REPLACE FUNCTION col_not_null ( NAME, NAME, TEXT )
-RETURNS TEXT AS $$
+-- col_not_null( table, column )
+CREATE OR REPLACE FUNCTION col_not_null (
+    table_name NAME, column_name NAME, description TEXT DEFAULT NULL
+) RETURNS TEXT AS $$
     SELECT _col_is_null( $1, $2, $3, true );
 $$ LANGUAGE SQL;
 
--- col_not_null( table, column )
-CREATE OR REPLACE FUNCTION col_not_null ( NAME, NAME )
-RETURNS TEXT AS $$
-    SELECT _col_is_null( $1, $2, 'Column ' || quote_ident($1) || '.' || quote_ident($2) || ' should be NOT NULL', true );
-$$ LANGUAGE SQL;
-
 -- col_is_null( schema, table, column, description )
-CREATE OR REPLACE FUNCTION col_is_null ( NAME, NAME, NAME, TEXT )
-RETURNS TEXT AS $$
+-- col_is_null( schema, table, column )
+CREATE OR REPLACE FUNCTION col_is_null (
+    schema_name NAME, table_name NAME, column_name NAME, description TEXT DEFAULT NULL
+) RETURNS TEXT AS $$
     SELECT _col_is_null( $1, $2, $3, $4, false );
 $$ LANGUAGE SQL;
 
--- col_is_null( schema, table, column )
-CREATE OR REPLACE FUNCTION col_is_null ( NAME, NAME, NAME )
-RETURNS TEXT AS $$
+-- col_is_null( table, column, description )
+-- col_is_null( table, column )
+CREATE OR REPLACE FUNCTION col_is_null (
+    table_name NAME, column_name NAME, description TEXT DEFAULT NULL
+) RETURNS TEXT AS $$
     SELECT _col_is_null( $1, $2, $3, false );
 $$ LANGUAGE SQL;
 
--- col_is_null( table, column )
-CREATE OR REPLACE FUNCTION col_is_null ( NAME, NAME )
-RETURNS TEXT AS $$
-    SELECT _col_is_null( $1, $2, 'Column ' || quote_ident($1) || '.' || quote_ident($2) || ' should allow NULL', false );
-$$ LANGUAGE SQL;
 
 CREATE OR REPLACE FUNCTION _get_col_type ( NAME, NAME, NAME )
 RETURNS TEXT AS $$
@@ -1919,24 +1935,26 @@ AS
 -- _keys( schema, table, constraint_type )
 CREATE OR REPLACE FUNCTION _keys ( NAME, NAME, CHAR )
 RETURNS SETOF NAME[] AS $$
-    SELECT _pg_sv_column_array(x.conrelid,x.conkey)
+    SELECT _pg_sv_column_array(x.conrelid,x.conkey) -- name[] doesn't support collation
       FROM pg_catalog.pg_namespace n
       JOIN pg_catalog.pg_class c       ON n.oid = c.relnamespace
       JOIN pg_catalog.pg_constraint x  ON c.oid = x.conrelid
      WHERE n.nspname = $1
        AND c.relname = $2
        AND x.contype = $3
+  ORDER BY 1
 $$ LANGUAGE sql;
 
 -- _keys( table, constraint_type )
 CREATE OR REPLACE FUNCTION _keys ( NAME, CHAR )
 RETURNS SETOF NAME[] AS $$
-    SELECT _pg_sv_column_array(x.conrelid,x.conkey)
+    SELECT _pg_sv_column_array(x.conrelid,x.conkey) -- name[] doesn't support collation
       FROM pg_catalog.pg_class c
       JOIN pg_catalog.pg_constraint x  ON c.oid = x.conrelid
        AND c.relname = $1
        AND x.contype = $2
      WHERE pg_catalog.pg_table_is_visible(c.oid)
+  ORDER BY 1
 $$ LANGUAGE sql;
 
 -- _ckeys( schema, table, constraint_type )
@@ -9917,136 +9935,6 @@ RETURNS TEXT AS $$
         'Table ' || quote_ident($1) || ' should not be partitioned'
     );
 $$ LANGUAGE sql;
-
--- _partof( child_schema, child_table, parent_schema, parent_table )
-CREATE OR REPLACE FUNCTION _partof ( NAME, NAME, NAME, NAME )
-RETURNS BOOLEAN AS $$
-    SELECT EXISTS(
-        SELECT true
-          FROM pg_catalog.pg_namespace cn
-          JOIN pg_catalog.pg_class cc ON cn.oid = cc.relnamespace
-          JOIN pg_catalog.pg_inherits i ON cc.oid = i.inhrelid
-          JOIN pg_catalog.pg_class pc ON i.inhparent = pc.oid
-          JOIN pg_catalog.pg_namespace pn ON pc.relnamespace = pn.oid
-         WHERE cn.nspname = $1
-           AND cc.relname = $2
-           AND cc.relispartition
-           AND pn.nspname = $3
-           AND pc.relname = $4
-           AND pc.relkind = 'p'
-    )
-$$ LANGUAGE sql;
-
--- _partof( child_table, parent_table )
-CREATE OR REPLACE FUNCTION _partof ( NAME, NAME )
-RETURNS BOOLEAN AS $$
-    SELECT EXISTS(
-        SELECT true
-          FROM pg_catalog.pg_class cc
-          JOIN pg_catalog.pg_inherits i ON cc.oid = i.inhrelid
-          JOIN pg_catalog.pg_class pc ON i.inhparent = pc.oid
-         WHERE cc.relname = $1
-           AND cc.relispartition
-           AND pc.relname = $2
-           AND pc.relkind = 'p'
-           AND pg_catalog.pg_table_is_visible(cc.oid)
-           AND pg_catalog.pg_table_is_visible(pc.oid)
-    )
-$$ LANGUAGE sql;
-
--- is_partition_of( child_schema, child_table, parent_schema, parent_table, description )
-CREATE OR REPLACE FUNCTION is_partition_of ( NAME, NAME, NAME, NAME, TEXT )
-RETURNS TEXT AS $$
-    SELECT ok( _partof($1, $2, $3, $4), $5);
-$$ LANGUAGE sql;
-
--- is_partition_of( child_schema, child_table, parent_schema, parent_table )
-CREATE OR REPLACE FUNCTION is_partition_of ( NAME, NAME, NAME, NAME )
-RETURNS TEXT AS $$
-    SELECT ok(
-        _partof($1, $2, $3, $4),
-        'Table ' || quote_ident($1) || '.' || quote_ident($2) || ' should be a partition of '
-        || quote_ident($3) || '.' || quote_ident($4)
-    );
-$$ LANGUAGE sql;
-
--- is_partition_of( child_table, parent_table, description )
-CREATE OR REPLACE FUNCTION is_partition_of ( NAME, NAME, TEXT )
-RETURNS TEXT AS $$
-    SELECT ok( _partof($1, $2), $3);
-$$ LANGUAGE sql;
-
--- is_partition_of( child_table, parent_table )
-CREATE OR REPLACE FUNCTION is_partition_of ( NAME, NAME )
-RETURNS TEXT AS $$
-    SELECT ok(
-        _partof($1, $2),
-        'Table ' || quote_ident($1) || ' should be a partition of ' || quote_ident($2)
-    );
-$$ LANGUAGE sql;
-
--- _parts(schema, table)
-CREATE OR REPLACE FUNCTION _parts( NAME, NAME )
-RETURNS SETOF NAME AS $$
-    SELECT i.inhrelid::regclass::name
-      FROM pg_catalog.pg_namespace n
-      JOIN pg_catalog.pg_class c ON n.oid = c.relnamespace
-      JOIN pg_catalog.pg_inherits i ON c.oid = i.inhparent
-     WHERE n.nspname = $1
-       AND c.relname = $2
-       AND c.relkind = 'p'
-$$ LANGUAGE SQL;
-
--- _parts(table)
-CREATE OR REPLACE FUNCTION _parts( NAME )
-RETURNS SETOF NAME AS $$
-    SELECT i.inhrelid::regclass::name
-      FROM pg_catalog.pg_class c
-      JOIN pg_catalog.pg_inherits i ON c.oid = i.inhparent
-     WHERE c.relname = $1
-       AND c.relkind = 'p'
-       AND pg_catalog.pg_table_is_visible(c.oid)
-$$ LANGUAGE SQL;
-
--- partitions_are( schema, table, partitions, description )
-CREATE OR REPLACE FUNCTION partitions_are( NAME, NAME, NAME[], TEXT )
-RETURNS TEXT AS $$
-    SELECT _are(
-        'partitions',
-        ARRAY(SELECT _parts($1, $2) EXCEPT SELECT unnest($3)),
-        ARRAY(SELECT unnest($3) EXCEPT SELECT _parts($1, $2)),
-        $4
-    );
-$$ LANGUAGE SQL;
-
--- partitions_are( schema, table, partitions )
-CREATE OR REPLACE FUNCTION partitions_are( NAME, NAME, NAME[] )
-RETURNS TEXT AS $$
-    SELECT partitions_are(
-        $1, $2, $3,
-        'Table ' || quote_ident($1) || '.' || quote_ident($2) || ' should have the correct partitions'
-    );
-$$ LANGUAGE SQL;
-
--- partitions_are( table, partitions, description )
-CREATE OR REPLACE FUNCTION partitions_are( NAME, NAME[], TEXT )
-RETURNS TEXT AS $$
-    SELECT _are(
-        'partitions',
-        ARRAY(SELECT _parts($1) EXCEPT SELECT unnest($2)),
-        ARRAY(SELECT unnest($2) EXCEPT SELECT _parts($1)),
-        $3
-    );
-$$ LANGUAGE SQL;
-
--- partitions_are( table, partitions )
-CREATE OR REPLACE FUNCTION partitions_are( NAME, NAME[] )
-RETURNS TEXT AS $$
-    SELECT partitions_are(
-        $1, $2,
-        'Table ' || quote_ident($1) || ' should have the correct partitions'
-    );
-$$ LANGUAGE SQL;
 
 CREATE OR REPLACE FUNCTION _ident_array_to_sorted_string( name[], text )
 RETURNS text AS $$
