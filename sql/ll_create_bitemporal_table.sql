@@ -1,3 +1,4 @@
+
 CREATE OR REPLACE FUNCTION bitemporal_internal.ll_create_bitemporal_table(
     p_schema text,
     p_table text,
@@ -13,6 +14,8 @@ v_serial_key text;
 v_pk_constraint_name text;
 v_table_definition text;
 v_error text;
+v_business_key_array text[];
+i int;
 BEGIN
 v_serial_key :=p_table||'_key';
 v_serial_key_name :=v_serial_key ||' serial';
@@ -21,6 +24,8 @@ v_business_key_name :=p_table||'_'||translate(p_business_key, ', ','_')||'_asser
 v_business_key_gist :=replace(p_business_key, ',',' WITH =,')||' WITH =, asserted WITH &&, effective WITH &&';
 --raise notice 'gist %',v_business_key_gist;
 v_table_definition :=replace (p_table_definition, ' serial', ' integer');
+v_business_key_array :=string_to_array(p_business_key, ',');
+
 EXECUTE format($create$
 CREATE TABLE %s.%s (
                  %s
@@ -42,6 +47,17 @@ CREATE TABLE %s.%s (
                  ,v_business_key_name
                  ,v_business_key_gist
                  ) ;
+ i:=1;     
+ while v_business_key_array[i] is not null loop    
+ execute   format($alter$
+    ALTER TABLE %s.%s ALTER %s SET NOT NULL
+                 $alter$
+                 ,p_schema
+                 ,p_table               
+                 ,v_business_key_array[i]
+                 ) ;   
+     i:=i+1;            
+     end loop;                       
  RETURN ('true');  
  EXCEPTION WHEN OTHERS THEN
 GET STACKED DIAGNOSTICS v_error = MESSAGE_TEXT;                          
