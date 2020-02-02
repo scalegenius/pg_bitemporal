@@ -265,7 +265,7 @@ $v$ values(0::integer) $v$,'bitemporal inactivate no active rows');
 
 ---delete:
 
-select results_eq($q$select * from bitemporal_internal.ll_bitemporal_delete('bi_temp_tables.evices'
+select results_eq($q$select * from bitemporal_internal.ll_bitemporal_delete('bi_temp_tables.devices'
 ,'device_id'  
 ,$$1$$  
 , '[3016-04-04 21:30, infinity)')  $q$, 
