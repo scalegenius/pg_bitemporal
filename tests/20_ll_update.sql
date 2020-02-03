@@ -18,7 +18,7 @@ $$, 'create schema');
 select lives_ok($$
   create table bi_temp_tables.devices_manual (
       device_id_key serial NOT NULL
-    , device_id integer
+    , device_id integer NOT NULL
     , effective tstzrange
     , asserted tstzrange
     , device_descr text
@@ -246,7 +246,7 @@ Exactly the same test should be performed for inactivate
 */
 
 
-select results_eq($q$select * from bitemporal_internal.ll_bitemporal_inactivate('bi_temp_tables.devices'
+select results_eq($q$select * from bitemporal_internal.ll_bitemporal_inactivate('bi_temp_tables','devices'
 ,'device_id'  
 ,$$11$$  
 ,'[3016-02-02, infinity)'
