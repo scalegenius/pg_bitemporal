@@ -62,7 +62,7 @@ $$);
 
 select results_eq($q$ 
 /* relname,conname,contype,consrc */
-select relname::name, conname::name, contype::char, consrc 
+select relname::name, conname::name, contype::char,pg_get_constraintdef(pg_constraint.oid) 
 from pg_constraint join pg_class on pg_class.oid = conrelid
   where 
     conname like 'bitemporal%'
