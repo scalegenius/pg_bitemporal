@@ -76,7 +76,7 @@ VALUES
     ,'c'::char
     ,$src$CHECK ((true OR ('pk'::text <> '@release_version_id@'::text)))$src$)
 ,('database_versions'::name,'bitemporal unique release_version'::name
-  ,'x'::char,NULL::text)
+  ,'x'::char,'EXCLUDE USING gist (release_version WITH =, asserted WITH &&, effective WITH &&)')
 ,('postgres_clusters'::name
   ,'bitemporal fk postgres_versiondatabase_versionsrelease_version'::name
   ,'c'::char
