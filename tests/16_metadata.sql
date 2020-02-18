@@ -83,7 +83,7 @@ VALUES
   ,$$CHECK ((true OR ('fk'::text <> '@postgres_version -> database_versions(release_version)@'::text)))$$)
 ,('postgres_clusters'::name
   ,'bitemporal pk postgres_cluster_id'::name,'c'::char
-  ,$$(CHECK(true OR ('pk'::text <> '@postgres_cluster_id@'::text)))$$)
+  ,$$CHECK ((true OR ('pk'::text <> '@postgres_cluster_id@'::text)))$$)
 ,('postgres_clusters'::name
  ,'bitemporal pk postgres_cluster_id unique idx'::name
   ,'x'::char,NULL::text)
