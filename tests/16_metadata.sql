@@ -71,7 +71,7 @@ from pg_constraint join pg_class on pg_class.oid = conrelid
 $q$,$v$
 VALUES 
  ('database_versions'::name,'bitemporal ok release_version_id unique idx'::name
-    ,'x'::char,NULL::text)
+    ,'x'::char,'EXCLUDE USING gist (release_version_id WITH =, asserted WITH &&, effective WITH &&)')
 ,('database_versions'::name,'bitemporal pk release_version_id'::name
     ,'c'::char
     ,$src$(true OR ('pk'::text <> '@release_version_id@'::text))$src$)
