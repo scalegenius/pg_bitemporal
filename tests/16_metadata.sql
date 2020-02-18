@@ -86,9 +86,9 @@ VALUES
   ,$$CHECK ((true OR ('pk'::text <> '@postgres_cluster_id@'::text)))$$)
 ,('postgres_clusters'::name
  ,'bitemporal pk postgres_cluster_id unique idx'::name
-  ,'x'::char,NULL::text)
+  ,'x'::char,$$EXCLUDE USING gist (postgres_cluster_id WITH =, asserted WITH &&, effective WITH &&)$$)
 ,('postgres_clusters'::name,'bitemporal unique port'::name
-   ,'x'::char,NULL::text)
+   ,'x'::char,$$EXCLUDE USING gist (port WITH =, asserted WITH &&, effective WITH &&)$$))
 $v$);
 
 /*
