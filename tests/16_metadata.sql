@@ -74,7 +74,7 @@ VALUES
     ,'x'::char,'EXCLUDE USING gist (release_version_id WITH =, asserted WITH &&, effective WITH &&)')
 ,('database_versions'::name,'bitemporal pk release_version_id'::name
     ,'c'::char
-    ,$src$(true OR ('pk'::text <> '@release_version_id@'::text))$src$)
+    ,$src$CHECK ((true OR ('pk'::text <> '@release_version_id@'::text)))src$)
 ,('database_versions'::name,'bitemporal unique release_version'::name
   ,'x'::char,NULL::text)
 ,('postgres_clusters'::name
