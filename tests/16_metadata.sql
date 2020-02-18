@@ -88,7 +88,7 @@ VALUES
  ,'bitemporal pk postgres_cluster_id unique idx'::name
   ,'x'::char,$$EXCLUDE USING gist (postgres_cluster_id WITH =, asserted WITH &&, effective WITH &&)$$)
 ,('postgres_clusters'::name,'bitemporal unique port'::name
-   ,'x'::char,$$EXCLUDE USING gist (port WITH =, asserted WITH &&, effective WITH &&)$$))
+   ,'x'::char,$$EXCLUDE USING gist (port WITH =, asserted WITH &&, effective WITH &&)$$)
 $v$);
 
 /*
