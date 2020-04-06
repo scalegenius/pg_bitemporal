@@ -62,7 +62,7 @@ $$);
 
 select results_eq($q$ 
 /* relname,conname,contype,consrc */
-select relname::name, conname::name, contype::char, consrc 
+select relname::name, conname::name, contype::char,pg_get_constraintdef(pg_constraint.oid) 
 from pg_constraint join pg_class on pg_class.oid = conrelid
   where 
     conname like 'bitemporal%'
@@ -71,24 +71,24 @@ from pg_constraint join pg_class on pg_class.oid = conrelid
 $q$,$v$
 VALUES 
  ('database_versions'::name,'bitemporal ok release_version_id unique idx'::name
-    ,'x'::char,NULL::text)
+    ,'x'::char,'EXCLUDE USING gist (release_version_id WITH =, asserted WITH &&, effective WITH &&)')
 ,('database_versions'::name,'bitemporal pk release_version_id'::name
     ,'c'::char
-    ,$src$(true OR ('pk'::text <> '@release_version_id@'::text))$src$)
+    ,$src$CHECK ((true OR ('pk'::text <> '@release_version_id@'::text)))$src$)
 ,('database_versions'::name,'bitemporal unique release_version'::name
-  ,'x'::char,NULL::text)
+  ,'x'::char,'EXCLUDE USING gist (release_version WITH =, asserted WITH &&, effective WITH &&)')
 ,('postgres_clusters'::name
   ,'bitemporal fk postgres_versiondatabase_versionsrelease_version'::name
   ,'c'::char
-  ,$$(true OR ('fk'::text <> '@postgres_version -> database_versions(release_version)@'::text))$$ )
+  ,$$CHECK ((true OR ('fk'::text <> '@postgres_version -> database_versions(release_version)@'::text)))$$)
 ,('postgres_clusters'::name
   ,'bitemporal pk postgres_cluster_id'::name,'c'::char
-  ,$$(true OR ('pk'::text <> '@postgres_cluster_id@'::text))$$)
+  ,$$CHECK ((true OR ('pk'::text <> '@postgres_cluster_id@'::text)))$$)
 ,('postgres_clusters'::name
  ,'bitemporal pk postgres_cluster_id unique idx'::name
-  ,'x'::char,NULL::text)
+  ,'x'::char,$$EXCLUDE USING gist (postgres_cluster_id WITH =, asserted WITH &&, effective WITH &&)$$)
 ,('postgres_clusters'::name,'bitemporal unique port'::name
-   ,'x'::char,NULL::text)
+   ,'x'::char,$$EXCLUDE USING gist (port WITH =, asserted WITH &&, effective WITH &&)$$)
 $v$);
 
 /*
