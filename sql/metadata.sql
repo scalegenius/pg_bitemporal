@@ -116,7 +116,6 @@ BEGIN
 END;
 $f$;
 
-DO $$
 create
 type bitemporal_internal.bitemporal_pg_constraint
 as
@@ -148,9 +147,6 @@ oid	oid
 ,conbin	pg_node_tree
 , consrc	text
 );
-$$
-LANGUAGE sql
-;
 
 create or replace
 function bitemporal_internal.find_constraints(table_name text, _criteria text )
