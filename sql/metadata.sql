@@ -116,12 +116,50 @@ BEGIN
 END;
 $f$;
 
-create or replace 
+create
+type bitemporal_internal.bitemporal_pg_constraint
+as
+(
+oid	oid
+,conname	name
+,connamespace	oid
+,contype	"char"
+,condeferrable	bool
+,condeferred	bool
+,convalidated	bool
+,conrelid	oid
+,contypid	oid
+,conindid	oid
+-- ,conparentid	oid
+,confrelid	oid
+,confupdtype	"char"
+,confdeltype	"char"
+,confmatchtype	"char"
+,conislocal	bool
+,coninhcount	int4
+,connoinherit	bool
+,conkey	int2[]
+,confkey	int2[]
+,conpfeqop	oid[]
+,conppeqop	oid[]
+,conffeqop	oid[]
+,conexclop	oid[]
+,conbin	pg_node_tree
+, consrc	text
+);
+
+create or replace
 function bitemporal_internal.find_constraints(table_name text, _criteria text )
-returns setof pg_constraint
+returns setof  bitemporal_internal.bitemporal_pg_constraint
 language sql IMMUTABLE
-as $f$ 
-    select *
+as $f$
+    select oid, conname, connamespace, contype,
+      condeferrable, condeferred,convalidated,
+  conrelid, contypid, conindid, /* conparentid,*/ confrelid,
+  confupdtype, confdeltype, confmatchtype, conislocal,
+  coninhcount	, connoinherit, conkey, confkey,
+  conpfeqop	, conppeqop	, conffeqop	, conexclop	, conbin
+       , pg_get_expr(conbin, conrelid) as consrc -- .pg_get_constraintdef()
        from pg_constraint
        where conrelid = cast(table_name as regclass)
        and conname like format('%s %s %%', bitemporal_internal.conname_prefix(), _criteria )

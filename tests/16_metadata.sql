@@ -6,7 +6,6 @@ CREATE TABLE postgres_auth_methods (
     auth_method text NOT NULL unique
 );
 
-\d postgres_auth_methods
 COPY postgres_auth_methods (auth_method) FROM stdin;
 md5
 ldap
