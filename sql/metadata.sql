@@ -130,7 +130,7 @@ oid	oid
 ,conrelid	oid
 ,contypid	oid
 ,conindid	oid
-,conparentid	oid
+-- ,conparentid	oid
 ,confrelid	oid
 ,confupdtype	"char"
 ,confdeltype	"char"
@@ -155,7 +155,7 @@ language sql IMMUTABLE
 as $f$
     select oid, conname, connamespace, contype,
       condeferrable, condeferred,convalidated,
-  conrelid, contypid, conindid, conparentid, confrelid,
+  conrelid, contypid, conindid, /* conparentid,*/ confrelid,
   confupdtype, confdeltype, confmatchtype, conislocal,
   coninhcount	, connoinherit, conkey, confkey,
   conpfeqop	, conppeqop	, conffeqop	, conexclop	, conbin
