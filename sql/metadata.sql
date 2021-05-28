@@ -122,6 +122,7 @@ returns setof pg_constraint
 language sql IMMUTABLE
 as $f$ 
     select *
+       , pg_get_expr(conbin, conrelid) as consrc -- .pg_get_constraintdef()
        from pg_constraint
        where conrelid = cast(table_name as regclass)
        and conname like format('%s %s %%', bitemporal_internal.conname_prefix(), _criteria )
