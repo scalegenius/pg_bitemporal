@@ -19,7 +19,8 @@ echo " "
 echo "pgtap test returned:" $PGTAP_TEST
 echo "reload test returned:" $RELOAD_TEST
 
-if ((  $PGTAP_TEST || $RELOAD_TEST )); then
+# if ((  $PGTAP_TEST || $RELOAD_TEST )); then
+if ((  $PGTAP_TEST )); then
   exit 1
 else
   exit 0
