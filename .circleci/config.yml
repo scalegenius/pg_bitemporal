@@ -1,14 +1,21 @@
 version: 2.1
 jobs:
    pgbuild:
+      parameters:
+        pg_version:
+          type: string
+        host_suffix:
+          type: string
+        pg_image_tag:
+          type: string
       docker:
         - image: slaught/docker-buildbox:postgres-client
           environment:
             POSTGRES_PASSWORD: f0285cb79f623675a3df3fe88a014d80a7276e55
-            POSTGRES_VERSION:  << parameter.pg_version >>
-            PGHOST: pg<< paramter.host_suffix >>
-        - image: library/postgres:<<parameter.pg_image_tag>>
-          name: pg<<parameter.host_suffix >>
+            POSTGRES_VERSION:  << parameters.pg_version >>
+            PGHOST: pg<< parameters.host_suffix >>
+        - image: library/postgres:<<parameters.pg_image_tag>>
+          name: pg<<parameters.host_suffix >>
           environment:
             PGDATA: /dev/shm/pgdata/data
             POSTGRES_PASSWORD: f0285cb79f623675a3df3fe88a014d80a7276e55
@@ -123,15 +130,13 @@ workflows:
       - "test-pg10"
       - "test-pg11"
       - pgbuild:
-           name: test-pg12
-           parameters:
-                pg_version: 12
-                host_suffix: 12
-                pg_image_tag: 12-alpine
-      - "pgbuild"
+           name: "test-pg12"
+           pg_version: "12"
+           host_suffix: "12"
+           pg_image_tag: 12-alpine
+      - pgbuild:
            name: "test-build"
-           parameters:
-                pg_version: 9.6
-                host_suffix: 96
-                pg_image_tag: 9.6-alpine
+           pg_version: "9.6"
+           host_suffix: "96"
+           pg_image_tag: 9.6-alpine
 
