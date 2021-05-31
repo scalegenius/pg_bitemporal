@@ -1,14 +1,21 @@
-version: 2.0
+version: 2.1
 jobs:
-   "test-pg96":
+   pgbuild:
+      parameters:
+        pg_version:
+          type: string
+        host_suffix:
+          type: string
+        pg_image_tag:
+          type: string
       docker:
         - image: slaught/docker-buildbox:postgres-client
           environment:
             POSTGRES_PASSWORD: f0285cb79f623675a3df3fe88a014d80a7276e55
-            POSTGRES_VERSION:  9.6
-            PGHOST: pg96
-        - image: library/postgres:9.6-alpine
-          name: pg96
+            POSTGRES_VERSION:  << parameters.pg_version >>
+            PGHOST: pg<< parameters.host_suffix >>
+        - image: library/postgres:<<parameters.pg_image_tag>>
+          name: pg<<parameters.host_suffix >>
           environment:
             PGDATA: /dev/shm/pgdata/data
             POSTGRES_PASSWORD: f0285cb79f623675a3df3fe88a014d80a7276e55
@@ -23,81 +30,32 @@ jobs:
         - run:
             name: test database
             command: ./build/test_database.sh
-   "test-pg10":
-      docker:
-        - image: slaught/docker-buildbox:postgres-client
-          environment:
-            POSTGRES_PASSWORD: f0285cb79f623675a3df3fe88a014d80a7276e55
-            POSTGRES_VERSION:  10
-            PGHOST: pg10
-        - image: library/postgres:10-alpine
-          name: pg10
-          environment:
-            PGDATA: /dev/shm/pgdata/data
-            POSTGRES_PASSWORD: f0285cb79f623675a3df3fe88a014d80a7276e55
-      steps:
-        - checkout
-        - run:
-            name: dependencies
-            command: ./build/dependencies.sh
-        - run:
-            name: load database
-            command: ./build/load_database.sh
-        - run:
-            name: test database
-            command: ./build/test_database.sh
-   "test-pg11":
-      docker:
-        - image: slaught/docker-buildbox:postgres-client
-          environment:
-            POSTGRES_PASSWORD: f0285cb79f623675a3df3fe88a014d80a7276e55
-            POSTGRES_VERSION:  11
-            PGHOST: pg11
-        - image: library/postgres:11-alpine
-          name: pg11
-          environment:
-            PGDATA: /dev/shm/pgdata/data
-            POSTGRES_PASSWORD: f0285cb79f623675a3df3fe88a014d80a7276e55
-      steps:
-        - checkout
-        - run:
-            name: dependencies
-            command: ./build/dependencies.sh
-        - run:
-            name: load database
-            command: ./build/load_database.sh
-        - run:
-            name: test database
-            command: ./build/test_database.sh
-   "test-pg12":
-      docker:
-        - image: slaught/docker-buildbox:postgres-client
-          environment:
-            POSTGRES_PASSWORD: f0285cb79f623675a3df3fe88a014d80a7276e55
-            POSTGRES_VERSION:  12
-            PGHOST: pg12
-        - image: library/postgres:12-alpine
-          name: pg12
-          environment:
-            PGDATA: /dev/shm/pgdata/data
-            POSTGRES_PASSWORD: f0285cb79f623675a3df3fe88a014d80a7276e55
-      steps:
-        - checkout
-        - run:
-            name: dependencies
-            command: ./build/dependencies.sh
-        - run:
-            name: load database
-            command: ./build/load_database.sh
-        - run:
-            name: test database
-            command: ./build/test_database.sh
+
 workflows:
-  version: 2
   build:
     jobs:
-      - "test-pg96"
-      - "test-pg10"
-      - "test-pg11"
-      - "test-pg12"
-
+      - pgbuild:
+           name: "test-pg96"
+           pg_version: "9.6"
+           host_suffix: "96"
+           pg_image_tag: 9.6-alpine
+      - pgbuild:
+           name: "test-pg10"
+           pg_version: "10"
+           host_suffix: "10"
+           pg_image_tag: 10-alpine
+      - pgbuild:
+           name: "test-pg11"
+           pg_version: "11"
+           host_suffix: "11"
+           pg_image_tag: 11-alpine
+      - pgbuild:
+           name: "test-pg12"
+           pg_version: "12"
+           host_suffix: "12"
+           pg_image_tag: 12-alpine
+      - pgbuild:
+           name: "test-pg13"
+           pg_version: "13"
+           host_suffix: "13"
+           pg_image_tag: 13-alpine
