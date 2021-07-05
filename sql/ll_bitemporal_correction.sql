@@ -99,7 +99,6 @@ END;
 $BODY$
   LANGUAGE plpgsql VOLATILE; 
   
-/*
  
  CREATE OR REPLACE FUNCTION bitemporal_internal.ll_bitemporal_correction(p_schema_name text,
     p_table_name text,
@@ -124,4 +123,4 @@ $BODY$
     END;
 $BODY$
   LANGUAGE plpgsql VOLATILE;
-  */
+ 
