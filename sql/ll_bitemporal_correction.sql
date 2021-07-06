@@ -1,3 +1,4 @@
+ 
   CREATE OR REPLACE FUNCTION bitemporal_internal.ll_bitemporal_correction(p_schema_name text,
     p_table_name text,
     p_list_of_fields text,
@@ -16,6 +17,7 @@ v_sql  text;
   v_now temporal_relationships.time_endpoint:=p_now ;-- for compatiability with the previous version
   v_serial_key text:=p_table_name||'_key';
   v_table text:=p_schema_name||'.'||p_table_name;
+  v_effective_start temporal_relationships.time_endpoint:=lower(p_effective) ;
   v_keys int[];
   v_keys_old  int[];
 BEGIN
@@ -28,7 +30,7 @@ BEGIN
  v_list_of_fields_to_insert:= array_to_string(v_table_attr, ',','');
  EXECUTE 
  format($u$ WITH updt AS (UPDATE %s SET asserted = temporal_relationships.timeperiod_range(lower(asserted), %L, '[)')
-                    WHERE ( %s )=( %s ) AND effective = %L
+                    WHERE ( %s )=( %s ) AND  %L=lower(effective)
                           AND upper(asserted)='infinity' 
                           AnD lower(asserted)<%L returning %s )
                                       SELECT array_agg(%s) FROM updt
@@ -37,7 +39,7 @@ BEGIN
           , v_now
           , p_search_fields
           , p_search_values
-          , p_effective
+          , v_effective_start
           , v_now
           , v_serial_key
           , v_serial_key) into v_keys_old;
@@ -97,7 +99,6 @@ END;
 $BODY$
   LANGUAGE plpgsql VOLATILE; 
   
-
  
  CREATE OR REPLACE FUNCTION bitemporal_internal.ll_bitemporal_correction(p_schema_name text,
     p_table_name text,
@@ -122,3 +123,4 @@ $BODY$
     END;
 $BODY$
   LANGUAGE plpgsql VOLATILE;
+ 
