@@ -12,7 +12,6 @@ PGTAP_TEST=$?
 
 echo "Test if load_all is reloadable."
 # TODO: make new 'create type" reloadable
-echo "There will be an ERROR for type bitemporal_pg_constraint"
 echo "\\set CI $CI %\\ir $D/_load_all.sql" |tr '%' '\n' | $PSQL
 RELOAD_TEST=$?
 
