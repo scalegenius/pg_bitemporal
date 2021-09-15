@@ -116,6 +116,7 @@ BEGIN
 END;
 $f$;
 
+drop type if exists bitemporal_internal.bitemporal_pg_constraint cascade;
 create
 type bitemporal_internal.bitemporal_pg_constraint
 as
