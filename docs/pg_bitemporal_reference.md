@@ -198,22 +198,6 @@ select * from bitemporal_internal.ll_bitemporal_insert_select(
 
 Performs bitemporal update operation.
 
-This function has two signatures:
-
-```
-bitemporal_internal.ll_bitemporal_update(
-    p_table TEXT,
-    p_list_of_fields TEXT, -- fields to update
-    p_list_of_values TEXT, -- values to update with
-    p_search_fields TEXT, -- search fields
-    p_search_values TEXT, -- search values
-    p_effective temporal_relationships.timeperiod,
-    p_asserted temporal_relationships.timeperiod
-);
-
-```
-
-Returns: INTEGER
 
 ```
 bitemporal_internal.ll_bitemporal_update(
@@ -229,10 +213,6 @@ bitemporal_internal.ll_bitemporal_update(
 
 Returns: INTEGER
 
-_We strongly recommend to use the latter one, the first signature is
-non-compatiable with PG 10 and up, and is retained solely for the backward
-compatiability, will be eventually retired. In addition, the performance of
-the second version is much better._
 
 _bitemporal update has some significant limitations on it's usage. The most
 restrictive is that the search criteria are limited to the EQUAL to some
@@ -294,21 +274,6 @@ Performs bitemporal update, where both updated values and records to be updated 
 UPDATE T1 set (a1, a2) = (SELECT v1, v2 FROM T2 WHERE ) WHERE T1.a3 IN (SELECT )
 ```
 
-Same as simple update, this function also has two signatures:
-
-```
-bitemporal_internal.ll_bitemporal_update_select(
-    p_table TEXT,
-    p_list_of_fields TEXT,
-    p_values_selected_update TEXT,
-    p_search_fields TEXT, -- search fields
-    p_values_selected_search TEXT,
-    p_effective temporal_relationships.timeperiod,
-    p_asserted temporal_relationships.timeperiod
-);
-```
-
-Returns: INTEGER
 
 ```
 bitemporal_internal.ll_bitemporal_update_select(
@@ -324,8 +289,6 @@ bitemporal_internal.ll_bitemporal_update_select(
 ```
 
 Returns: INTEGER
-
-_Same warnings/recommendations are applicable for two versions of UPDATE_SELECT, as for simple UPDATE, however UPDATE_SELECT allows more complex search croteria._
 
 Input:
 
