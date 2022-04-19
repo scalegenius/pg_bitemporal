@@ -33,15 +33,14 @@ $BODY$
 BEGIN
 RETURN ( array(SELECT attname
                           FROM (SELECT * FROM pg_attribute
-                                  WHERE attrelid=p_table::regclass AND attnum >0) pa
+                                  WHERE attrelid=p_table::regclass AND attnum >1) pa
                           LEFT OUTER JOIN pg_attrdef pad ON adrelid=p_table::regclass
                                                         AND adrelid=attrelid
                                                         AND pa.attnum=pad.adnum
-                          WHERE (adbin IS NULL)
-                                AND attname !='asserted'
+                          WHERE  attname !='asserted'
                                 AND attname !='effective'
-                               -- AND attname !='row_created_at'
-                                and attname not like '%dropped%'
+                                AND attname !='row_created_at'
+                                AND attname not like '%dropped%'
                         ORDER BY pa.attnum));
 END;                        
 $BODY$ LANGUAGE plpgsql
